@@ -63,7 +63,13 @@ main(int argc, char **argv)
 				}
 			}
 			if (S_ISDIR(sb.st_mode)) {
-				if (process_directory(argv[i], &ls_opts) < 0) {
+				if (process_directory(argv[i], &sb, &ls_opts) < 0) {
+					fprintf(stderr, "'%s: %s\n", getprogname(),
+					        strerror(errno));
+					exit(EXIT_FAILURE);
+				}
+			} else {
+				if (process_non_dir_file(argv[i], &sb, &ls_opts) < 0) {
 					fprintf(stderr, "'%s: %s\n", getprogname(),
 					        strerror(errno));
 					exit(EXIT_FAILURE);
@@ -71,7 +77,7 @@ main(int argc, char **argv)
 			}
 		}
 	} else {
-		if (process_directory(".", &ls_opts) < 0) {
+		if (process_directory(".", &sb, &ls_opts) < 0) {
 			fprintf(stderr, "'%s: %s\n", getprogname(), strerror(errno));
 			exit(EXIT_FAILURE);
 		}
