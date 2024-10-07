@@ -1,0 +1,2 @@
+ls(1) implementation for netBSD 10.0
+usage: ls [-AacdFfhiklnqRrSstuw] [file ...]
