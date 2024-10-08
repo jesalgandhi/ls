@@ -1,5 +1,16 @@
 #include "file_processing.h"
 
+#include <sys/stat.h>
+#include <sys/types.h>
+
+#include <errno.h>
+#include <fts.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "flag_handlers.h"
+#include "ls_options.h"
+
 int
 process_paths(const char **paths, ls_options *ls_opts)
 {
@@ -20,20 +31,30 @@ process_paths(const char **paths, ls_options *ls_opts)
 	}
 
 	while ((entry = fts_read(ftsp)) != NULL) {
-
-		/* Skip entry if recursive flag not set */
-		if (!ls_opts->o_recursive && entry->fts_level > 0) {
-			fts_set(ftsp, entry, FTS_SKIP);
-			continue;
-		}
-
 		/* Handle hidden files/flags accordingly */
 		if ((entry->fts_name[0] == '.') &&
 		    (handle_hidden_files_a_A(entry->fts_name, ls_opts) == 0)) {
 			continue;
 		}
 
-		process_entry(entry, ls_opts);
+		/* Prevent recursive traversal of fts if -d or !-R */
+		if (entry->fts_info == FTS_D) {
+			if (ls_opts->o_list_directories_as_files) {
+				fts_set(ftsp, entry, FTS_SKIP);
+				/* Process once so dir is printed */
+				process_entry(entry, ls_opts);
+				continue;
+			} else if (!ls_opts->o_recursive && entry->fts_level > 0) {
+				fts_set(ftsp, entry, FTS_SKIP);
+				continue;
+			}
+		}
+
+		if (entry->fts_info != FTS_D && entry->fts_info != FTS_DP) {
+			process_entry(entry, ls_opts);
+		} else if (!ls_opts->single_dir) {
+			printf("%s:\n", entry->fts_name);
+		}
 	}
 
 	if (errno != 0) {
@@ -62,9 +83,8 @@ print_entry(FTSENT *entry, ls_options *ls_opts)
 }
 
 void
-print_long_format(const char *file, const struct stat *sb, ls_options *ls_opts)
+print_long_format(FTSENT *entry, ls_options *ls_opts)
 {
-	(void)file;
-	(void)sb;
+	(void)entry;
 	(void)ls_opts;
 }

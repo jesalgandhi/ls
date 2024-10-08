@@ -24,9 +24,7 @@ parse_commandline_args(int argc, char **argv, ls_options *ls_opts)
 			ls_opts->o_include_dot_entries = 1;
 			break;
 		case 'c':
-			if (ls_opts->o_use_access_time) {
-				ls_opts->o_use_access_time = 0;
-			}
+			ls_opts->o_use_access_time = 0;
 			ls_opts->o_use_status_time = 1;
 			break;
 		case 'd':
@@ -39,36 +37,26 @@ parse_commandline_args(int argc, char **argv, ls_options *ls_opts)
 			ls_opts->o_no_sorting = 1;
 			break;
 		case 'h':
-			if (ls_opts->o_report_kb) {
-				ls_opts->o_report_kb = 0;
-			}
+			ls_opts->o_report_kb = 0;
 			ls_opts->o_human_readable_size = 1;
 			break;
 		case 'i':
 			ls_opts->o_print_inode = 1;
 			break;
 		case 'k':
-			if (ls_opts->o_human_readable_size) {
-				ls_opts->o_human_readable_size = 0;
-			}
+			ls_opts->o_human_readable_size = 0;
 			ls_opts->o_report_kb = 1;
 			break;
 		case 'l':
-			if (ls_opts->o_numeric_ids) {
-				ls_opts->o_numeric_ids = 0;
-			}
+			ls_opts->o_numeric_ids = 0;
 			ls_opts->o_long_format = 1;
 			break;
 		case 'n':
-			if (ls_opts->o_long_format) {
-				ls_opts->o_long_format = 0;
-			}
+			ls_opts->o_long_format = 0;
 			ls_opts->o_numeric_ids = 1;
 			break;
 		case 'q':
-			if (ls_opts->o_raw_print_non_printable) {
-				ls_opts->o_raw_print_non_printable = 0;
-			}
+			ls_opts->o_raw_print_non_printable = 0;
 			ls_opts->o_f_non_printable = 1;
 			break;
 		case 'R':
@@ -87,15 +75,11 @@ parse_commandline_args(int argc, char **argv, ls_options *ls_opts)
 			ls_opts->o_sort_by_mod_time = 1;
 			break;
 		case 'u':
-			if (ls_opts->o_use_status_time) {
-				ls_opts->o_use_status_time = 0;
-			}
+			ls_opts->o_use_status_time = 0;
 			ls_opts->o_use_access_time = 1;
 			break;
 		case 'w':
-			if (ls_opts->o_f_non_printable) {
-				ls_opts->o_f_non_printable = 0;
-			}
+			ls_opts->o_f_non_printable = 0;
 			ls_opts->o_raw_print_non_printable = 1;
 			break;
 		case '?':

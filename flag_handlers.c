@@ -1,5 +1,9 @@
 #include "flag_handlers.h"
 
+#include <string.h>
+
+#include "ls_options.h"
+
 int
 handle_hidden_files_a_A(char *filename, ls_options *ls_opts)
 {
