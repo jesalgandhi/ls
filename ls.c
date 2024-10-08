@@ -44,43 +44,39 @@ int
 main(int argc, char **argv)
 {
 	ls_options ls_opts = {0};
-	struct stat sb;
 	int i;
+	int num_paths;
+	char **paths;
 	int optind = parse_commandline_args(argc, argv, &ls_opts);
 
+	/* Will not print "[dir]:" before dir if enabled */
 	if (argc <= 2) {
 		ls_opts.single_dir = 1;
 	}
 
 	/* Files are accessible in argv from [optind, argc) */
 	if (!ls_opts.current_dir) {
-		for (i = optind; i < argc; i++) {
-			if (stat(argv[i], &sb) < 0) {
-				fprintf(stderr, "%s: %s: %s\n", getprogname(), argv[i],
-				        strerror(errno));
-				if (errno != ENOENT) {
-					exit(EXIT_FAILURE);
-				}
-			}
-			if (S_ISDIR(sb.st_mode)) {
-				if (process_directory(argv[i], &sb, &ls_opts) < 0) {
-					fprintf(stderr, "'%s: %s\n", getprogname(),
-					        strerror(errno));
-					exit(EXIT_FAILURE);
-				}
-			} else {
-				if (process_non_dir_file(argv[i], &sb, &ls_opts) < 0) {
-					fprintf(stderr, "'%s: %s\n", getprogname(),
-					        strerror(errno));
-					exit(EXIT_FAILURE);
-				}
-			}
+		num_paths = argc - optind;
+
+		/* +1 because paths must be NULL-terminated for fts(3) */
+		paths = malloc((num_paths + 1) * sizeof(char *));
+		for (i = 0; i < num_paths; i++) {
+			paths[i] = argv[optind + i];
 		}
+		paths[num_paths] = NULL;
 	} else {
-		if (process_directory(".", &sb, &ls_opts) < 0) {
-			fprintf(stderr, "'%s: %s\n", getprogname(), strerror(errno));
-			exit(EXIT_FAILURE);
+		paths = (char **){".", NULL};
+	}
+
+	if (process_paths(paths, &ls_opts) < 0) {
+		fprintf(stderr, "%s: %s\n", getprogname(), strerror(errno));
+		if (!ls_opts.current_dir) {
+			free(paths);
 		}
+		exit(EXIT_FAILURE);
+	}
+	if (!ls_opts.current_dir) {
+		free(paths);
 	}
 
 	/*

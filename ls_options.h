@@ -1,7 +1,7 @@
 #ifndef LS_OPTIONS_H
 #define LS_OPTIONS_H
 
-typedef struct {
+typedef struct ls_options {
 
 	int current_dir; /* Enabled if user does not provide any files */
 	int single_dir;  /* Enabled if single dir is provided (no directory
