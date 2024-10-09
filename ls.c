@@ -3,6 +3,7 @@
 
 #include <dirent.h>
 #include <errno.h>
+#include <fts.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -60,12 +61,22 @@ main(int argc, char **argv)
 
 		/* +1 because paths must be NULL-terminated for fts(3) */
 		paths = malloc((num_paths + 1) * sizeof(char *));
+		if (paths == NULL) {
+			fprintf(stderr, "%s: %s", getprogname(), strerror(errno));
+			exit(EXIT_FAILURE);
+		}
 		for (i = 0; i < num_paths; i++) {
 			paths[i] = argv[optind + i];
 		}
 		paths[num_paths] = NULL;
 	} else {
-		paths = (char **){".", NULL};
+		paths = malloc(2 * sizeof(char *));
+		if (paths == NULL) {
+			fprintf(stderr, "%s: %s", getprogname(), strerror(errno));
+			exit(EXIT_FAILURE);
+		}
+		paths[0] = ".";
+		paths[1] = NULL;
 	}
 
 	if (process_paths(paths, &ls_opts) < 0) {

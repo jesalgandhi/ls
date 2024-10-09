@@ -11,8 +11,39 @@
 #include "flag_handlers.h"
 #include "ls_options.h"
 
+void
+print_entry(FTSENT *entry, ls_options *ls_opts)
+{
+	struct stat *sb = entry->fts_statp;
+	(void)sb;
+	printf("%s", entry->fts_name);
+	/* TODO print more here maybe ... */
+	(void)ls_opts;
+	printf("\n");
+}
+
+void
+print_entry_long_format(FTSENT *entry, ls_options *ls_opts)
+{
+	(void)entry;
+	(void)ls_opts;
+}
+
 int
-process_paths(const char **paths, ls_options *ls_opts)
+process_entry(FTSENT *entry, ls_options *ls_opts)
+{
+	struct stat *sb = entry->fts_statp;
+	(void)sb;
+	if (ls_opts->o_long_format) {
+		print_entry_long_format(entry, ls_opts);
+	} else {
+		print_entry(entry, ls_opts);
+	}
+	return 0;
+}
+
+int
+process_paths(char **paths, ls_options *ls_opts)
 {
 	FTS *ftsp;
 	FTSENT *entry;
@@ -25,13 +56,11 @@ process_paths(const char **paths, ls_options *ls_opts)
 		fts_opts = FTS_PHYSICAL;
 	}
 
-	if (ftsp = fts_open(paths, fts_opts, NULL) < 0) {
-		fprintf(stderr, "%s: %s\n", getprogname(), strerror(errno));
-		exit(EXIT_FAILURE);
+	if ((ftsp = fts_open(paths, fts_opts, NULL)) == NULL) {
+		return -1;
 	}
 
 	while ((entry = fts_read(ftsp)) != NULL) {
-		/* Handle hidden files/flags accordingly */
 		if ((entry->fts_name[0] == '.') &&
 		    (handle_hidden_files_a_A(entry->fts_name, ls_opts) == 0)) {
 			continue;
@@ -41,20 +70,24 @@ process_paths(const char **paths, ls_options *ls_opts)
 		if (entry->fts_info == FTS_D) {
 			if (ls_opts->o_list_directories_as_files) {
 				fts_set(ftsp, entry, FTS_SKIP);
-				/* Process once so dir is printed */
+				/* Process once so dir is printed as regular file */
 				process_entry(entry, ls_opts);
 				continue;
+				/* Depth > 0 -> nested folder -> skip if not -R */
 			} else if (!ls_opts->o_recursive && entry->fts_level > 0) {
 				fts_set(ftsp, entry, FTS_SKIP);
 				continue;
 			}
 		}
 
+		/* Process for non-dir files */
 		if (entry->fts_info != FTS_D && entry->fts_info != FTS_DP) {
 			process_entry(entry, ls_opts);
-		} else if (!ls_opts->single_dir) {
-			printf("%s:\n", entry->fts_name);
 		}
+		/* TODO NOT WORKING FIX Print "[dir]:" for path if >1 path and -d/!-R
+		else if (!ls_opts->single_dir) {
+		    printf("%s:\n", entry->fts_name);
+		}*/
 	}
 
 	if (errno != 0) {
@@ -65,26 +98,4 @@ process_paths(const char **paths, ls_options *ls_opts)
 		return -1;
 	}
 	return 0;
-}
-
-int
-process_entry(FTSENT *entry, ls_options *ls_opts)
-{
-}
-
-int
-print_entry(FTSENT *entry, ls_options *ls_opts)
-{
-
-	/* Print if not dir or if dir and -d flag */
-	if (entry->fts_info != FTS_D ||
-	    (entry->fts_info == FTS_D && ls_opts->o_list_directories_as_files)) {
-	}
-}
-
-void
-print_long_format(FTSENT *entry, ls_options *ls_opts)
-{
-	(void)entry;
-	(void)ls_opts;
 }
