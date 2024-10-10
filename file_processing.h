@@ -1,6 +1,11 @@
 #ifndef FILE_PROCESSING_H
 #define FILE_PROCESSING_H
 
+/* FTS_ROOTLEVEL taken from gnulib fts_.h
+ * https://github.com/coreutils/gnulib/blob/dd07b74893bc2fee44743f775a887930d04e9a85/lib/fts_.h#L222
+ */
+#define FTS_ROOTLEVEL 0
+
 #include <sys/types.h>
 
 #include <fts.h>

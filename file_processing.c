@@ -15,8 +15,10 @@ void
 print_entry(FTSENT *entry, ls_options *ls_opts)
 {
 	struct stat *sb = entry->fts_statp;
-	(void)sb;
 	printf("%s: %d", entry->fts_name, entry->fts_level);
+	if (S_ISDIR(sb->st_mode)) {
+		printf(" dir ");
+	}
 	/* TODO print more here maybe ... */
 	(void)ls_opts;
 	printf("\n");
@@ -66,18 +68,11 @@ process_paths(char **paths, ls_options *ls_opts)
 	}
 
 	while ((entry = fts_read(ftsp)) != NULL) {
-		/*
-		if ((entry->fts_name[0] == '.') &&
-		    (handle_hidden_files_a_A(entry->fts_name, ls_opts) == 0)) {
-		    continue;
-		}
-		*/
-
-
-		if (entry->fts_level == 0) {
-			if (!ls_opts->single_dir && entry->fts_info == FTS_D) {
-				printf("%s:\n", entry->fts_name);
-			} else {
+		/* Show dir name for non-recursive when mulitple paths given */
+		if (!ls_opts->o_recursive && entry->fts_level == FTS_ROOTLEVEL &&
+		    entry->fts_info == FTS_D) {
+			if (!ls_opts->single_dir) {
+				printf("%s:\n", entry->fts_path);
 				continue;
 			}
 		}
@@ -96,17 +91,6 @@ process_paths(char **paths, ls_options *ls_opts)
 			}
 		}
 
-		/* Print "[dir]: " if multiple paths given */
-		/*
-		if (entry->fts_info == FTS_D || entry->fts_info == FTS_DP) {
-		    if (entry->fts_level == 0 && !ls_opts->single_dir) {
-		        printf("%s:\n", entry->fts_name);
-		    } else {
-		        continue;
-		    }
-		}
-		*/
-
 		/* Process non-hidden files, unless flagged otherwise */
 		if ((entry->fts_name[0] == '.') &&
 		    (handle_hidden_files_a_A(entry->fts_name, ls_opts) == 0)) {
@@ -114,16 +98,6 @@ process_paths(char **paths, ls_options *ls_opts)
 		} else {
 			process_entry(entry, ls_opts);
 		}
-
-		/* if (entry->fts_info != FTS_D && entry->fts_info != FTS_DP) {
-		    process_entry(entry, ls_opts);
-		}*/
-
-		/* FIX LOGIC; IF USING -R YOU WILL NEED TO PRINT [dir]: ALWAYS*/
-		/* TODO NOT WORKING FIX Print "[dir]:" for path if >1 path and -d/!-R
-		else if (!ls_opts->single_dir) {
-		    printf("%s:\n", entry->fts_name);
-		}*/
 	}
 
 	if (errno != 0) {
