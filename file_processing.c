@@ -51,6 +51,7 @@ process_paths(char **paths, ls_options *ls_opts)
 	FTS *ftsp;
 	FTSENT *entry;
 	int fts_opts;
+	int first_dir = 1;
 	/* TODO: Declare fn ptr for compare param of fts_open */
 
 	if (ls_opts->o_list_directories_as_files) {
@@ -75,7 +76,11 @@ process_paths(char **paths, ls_options *ls_opts)
 
 			/* Only show dir name for pre-order dirs */
 			if (!ls_opts->single_dir && entry->fts_info == FTS_D) {
-				printf("\n%s:\n", entry->fts_path);
+				if (!first_dir) {
+					printf("\n");
+				}
+				printf("%s:\n", entry->fts_path);
+				first_dir = 0;
 			}
 			continue;
 		}
