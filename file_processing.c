@@ -35,6 +35,7 @@ int
 process_entry(FTSENT *entry, ls_options *ls_opts)
 {
 	struct stat *sb = entry->fts_statp;
+
 	(void)sb;
 	if (ls_opts->o_long_format) {
 		print_entry_long_format(entry, ls_opts);
@@ -61,7 +62,7 @@ process_paths(char **paths, ls_options *ls_opts)
 		fts_opts |= FTS_SEEDOT;
 	}
 
-	fts_opts |= FTS_NOCHDIR;
+	/* fts_opts |= FTS_NOCHDIR; */
 
 	if ((ftsp = fts_open(paths, fts_opts, NULL)) == NULL) {
 		return -1;
@@ -70,11 +71,13 @@ process_paths(char **paths, ls_options *ls_opts)
 	while ((entry = fts_read(ftsp)) != NULL) {
 		/* Show dir name for non-recursive when mulitple paths given */
 		if (!ls_opts->o_recursive && entry->fts_level == FTS_ROOTLEVEL &&
-		    entry->fts_info == FTS_D) {
-			if (!ls_opts->single_dir) {
-				printf("%s:\n", entry->fts_path);
-				continue;
+		    (entry->fts_info == FTS_D || entry->fts_info == FTS_DP)) {
+
+			/* Only show dir name for pre-order dirs */
+			if (!ls_opts->single_dir && entry->fts_info == FTS_D) {
+				printf("\n%s:\n", entry->fts_path);
 			}
+			continue;
 		}
 
 		/* Prevent recursive traversal of fts if -d or !-R */
@@ -84,10 +87,12 @@ process_paths(char **paths, ls_options *ls_opts)
 				/* Process once so dir is printed as regular file */
 				process_entry(entry, ls_opts);
 				continue;
-				/* Depth > 0 -> nested folder -> skip if not -R */
-			} else if (!ls_opts->o_recursive && entry->fts_level > 0) {
-				fts_set(ftsp, entry, FTS_SKIP);
-				continue;
+				/* Depth > root -> nested folder -> skip if not -R */
+			} else if (!ls_opts->o_recursive) {
+				if (entry->fts_level > FTS_ROOTLEVEL) {
+					fts_set(ftsp, entry, FTS_SKIP);
+					continue;
+				}
 			}
 		}
 

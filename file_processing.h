@@ -16,10 +16,10 @@ int process_paths(char **paths, ls_options *ls_opts);
 
 int process_entry(FTSENT *entry, ls_options *ls_opts);
 
-/* Prints non-dir file in short format */
+/* Prints file in short format */
 void print_entry(FTSENT *entry, ls_options *ls_opts);
 
-/* Prints non-dir file in long format */
+/* Prints file in long format */
 void print_entry_long_format(FTSENT *entry, ls_options *ls_opts);
 
 #endif

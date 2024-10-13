@@ -17,7 +17,7 @@
 void
 print_opts(ls_options *ls_opts)
 {
-	printf("current_dir: %d\n", ls_opts->current_dir);
+	printf("single_dir: %d\n", ls_opts->single_dir);
 	printf("o_list_all_except_dot: %d\n", ls_opts->o_list_all_except_dot);
 	printf("o_include_dot_entries: %d\n", ls_opts->o_include_dot_entries);
 	printf("o_use_status_time: %d\n", ls_opts->o_use_status_time);
@@ -50,8 +50,8 @@ main(int argc, char **argv)
 	char **paths;
 	int optind = parse_commandline_args(argc, argv, &ls_opts);
 
-	/* Will not print "[dir]:" before dir if enabled */
-	if (argc <= 2) {
+	num_paths = argc - optind;
+	if (num_paths <= 1) {
 		ls_opts.single_dir = 1;
 	}
 
