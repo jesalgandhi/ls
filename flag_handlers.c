@@ -23,6 +23,7 @@ handle_hidden_files_a_A(char *filename, ls_options *ls_opts)
 		}
 		return -1;
 	}
+
 	return 0;
 }
 
