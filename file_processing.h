@@ -24,12 +24,13 @@
 
 int process_paths(char **paths, ls_options *ls_opts);
 
-int process_entry(FTSENT *entry, ls_options *ls_opts);
+int process_entry(FTSENT *entry, char *filename, ls_options *ls_opts);
 
 /* Prints file in short format */
-void print_entry(FTSENT *entry, ls_options *ls_opts);
+void print_entry(FTSENT *entry, char *filename, ls_options *ls_opts);
 
 /* Prints file in long format */
-void print_entry_long_format(FTSENT *entry, ls_options *ls_opts);
+void print_entry_long_format(FTSENT *entry, char *filename,
+                             ls_options *ls_opts);
 
 #endif

@@ -10,6 +10,7 @@
 #include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -17,34 +18,18 @@
 #include "ls_options.h"
 
 void
-print_entry(FTSENT *entry, ls_options *ls_opts)
+print_entry(FTSENT *entry, char *filename, ls_options *ls_opts)
 {
 	struct stat *sb = entry->fts_statp;
-	printf("%s", entry->fts_name);
+	printf("%s", filename);
 	/* TODO print more here maybe ... */
 	(void)ls_opts;
 	(void)sb;
 	printf("\n");
 }
 
-/*
 void
-print_entry_long_format(FTSENT *entry, ls_options *ls_opts)
-{
-    char sym_str[SYMBOLIC_STRING_SIZE];
-    struct stat *sb = entry->fts_statp;
-
-    (void)ls_opts;
-    strmode(sb->st_mode, sym_str);
-    printf("%s  ", sym_str);
-    printf("%d  ", sb->st_nlink);
-    printf("%s", entry->fts_name);
-    printf("\n");
-}
-*/
-
-void
-print_entry_long_format(FTSENT *entry, ls_options *ls_opts)
+print_entry_long_format(FTSENT *entry, char *filename, ls_options *ls_opts)
 {
 	struct stat *sb = entry->fts_statp;
 	char sym_str[SYMBOLIC_STRING_SIZE];
@@ -88,7 +73,7 @@ print_entry_long_format(FTSENT *entry, ls_options *ls_opts)
 
 	printf("%-11s %-1ld %-7s %-8s %4ld %s %s", sym_str, (long)sb->st_nlink,
 	       pw ? pw->pw_name : "", gr ? gr->gr_name : "", (long)sb->st_size,
-	       date_str, entry->fts_name);
+	       date_str, filename);
 
 	/* Follow through symbolic links */
 	if (S_ISLNK(sb->st_mode)) {
@@ -104,15 +89,15 @@ print_entry_long_format(FTSENT *entry, ls_options *ls_opts)
 }
 
 int
-process_entry(FTSENT *entry, ls_options *ls_opts)
+process_entry(FTSENT *entry, char *filename, ls_options *ls_opts)
 {
 	struct stat *sb = entry->fts_statp;
 
 	(void)sb;
 	if (ls_opts->o_long_format) {
-		print_entry_long_format(entry, ls_opts);
+		print_entry_long_format(entry, filename, ls_opts);
 	} else {
-		print_entry(entry, ls_opts);
+		print_entry(entry, filename, ls_opts);
 	}
 	return 0;
 }
@@ -126,11 +111,13 @@ process_paths(char **paths, ls_options *ls_opts)
 	int first_entry = 1;
 	/* TODO: Declare fn ptr for compare param of fts_open */
 
+	/* Do not use fts for -d at all, just lstat */
 	if (ls_opts->o_list_directories_as_files) {
-		fts_opts = FTS_LOGICAL;
-	} else {
-		fts_opts = FTS_PHYSICAL;
+		handle_dirs_as_files_d(paths, ls_opts, process_entry);
+		return 0;
 	}
+
+	fts_opts = FTS_PHYSICAL;
 	if (ls_opts->o_include_dot_entries) {
 		fts_opts |= FTS_SEEDOT;
 	}
@@ -158,15 +145,16 @@ process_paths(char **paths, ls_options *ls_opts)
 		}
 
 		/* Prevent recursive traversal of fts if -d or !-R */
-		if (entry->fts_info == FTS_D) {
+		if (entry->fts_info == FTS_D || entry->fts_info == FTS_DP) {
 			if (ls_opts->o_list_directories_as_files) {
+				printf("skipping %s\n", entry->fts_name);
 				fts_set(ftsp, entry, FTS_SKIP);
 				/* Process once so dir is printed as regular file */
-				process_entry(entry, ls_opts);
+				process_entry(entry, entry->fts_name, ls_opts);
 				first_entry = 0;
 				continue;
 				/* Depth > root -> nested folder -> skip if not -R */
-			} else if (!ls_opts->o_recursive) {
+			} else if (!ls_opts->o_recursive && entry->fts_info == FTS_D) {
 				if (entry->fts_level > FTS_ROOTLEVEL) {
 					fts_set(ftsp, entry, FTS_SKIP);
 					continue;
@@ -179,7 +167,7 @@ process_paths(char **paths, ls_options *ls_opts)
 		    (handle_hidden_files_a_A(entry->fts_name, ls_opts) == 0)) {
 			continue;
 		} else {
-			process_entry(entry, ls_opts);
+			process_entry(entry, entry->fts_name, ls_opts);
 			first_entry = 0;
 		}
 	}
