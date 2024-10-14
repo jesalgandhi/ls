@@ -6,6 +6,16 @@
  */
 #define FTS_ROOTLEVEL 0
 
+/* Size of symbolic string returned by strmode(3)
+"This stored string is eleven characters in length
+  plus a trailing nul byte.""
+ */
+#define SYMBOLIC_STRING_SIZE 12
+
+#define ABBREVIATED_MONTH_SIZE 4
+
+#define DATE_STRING_SIZE 32
+
 #include <sys/types.h>
 
 #include <fts.h>
