@@ -8,6 +8,7 @@
 #include <fts.h>
 #include <grp.h>
 #include <limits.h>
+#include <math.h>
 #include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,8 +32,17 @@ process_entries(FTSENT *children, ls_options *ls_opts)
 	struct group *gr;
 	char *sanitized_name;
 
-	dir_info di = {-1};
-	di.total_blocks = 0;
+	time_t t = time(NULL);
+	struct tm *tm_ptr;
+	struct tm curr_tm_info;
+	struct tm file_tm_info;
+	int curr_yr;
+	int file_yr;
+
+	/* Total block size always init to 0; we initialize the others to -1 to
+	 * check whether they were populated in print to avoid unnecessary
+	 * processing */
+	dir_info di = {0, -1, -1, -1, -1, -1, -1, -1, -1};
 
 	int size_len;
 	int links_len;
@@ -43,7 +53,11 @@ process_entries(FTSENT *children, ls_options *ls_opts)
 	int inode_len;
 	int block_size_len;
 
-	/* First find widths of props of all files */
+	tm_ptr = localtime(&t);
+	curr_tm_info = *tm_ptr;
+	curr_yr = curr_tm_info.tm_year + 1900;
+
+	/* Find widths of props of children files */
 	for (child = children; child != NULL; child = child->fts_link) {
 		if ((child->fts_name[0] == '.') &&
 		    (handle_hidden_files_a_A(child->fts_name, ls_opts) == 0)) {
@@ -59,38 +73,69 @@ process_entries(FTSENT *children, ls_options *ls_opts)
 		}
 
 		sb = child->fts_statp;
-		total_blocks += sb->st_blocks;
 
+		/* Below two options apply to either short/long format */
+		if (ls_opts->o_display_block_usage) {
+			/* Check len of str representation of type as long (repeated below)
+			 */
+			block_size_len = snprintf(NULL, 0, "%ld", (long)sb->st_blocks);
+			if (block_size_len > di.max_block_size_width) {
+				di.max_block_size_width = block_size_len;
+			}
+		}
+		if (ls_opts->o_print_inode) {
+			inode_len = snprintf(NULL, 0, "%ld", (long)sb->st_ino);
+			if (inode_len > di.max_inode_width) {
+				di.max_inode_width = inode_len;
+			}
+		}
+
+		/* Below options always apply to long format */
 		if (ls_opts->o_long_format) {
-		}
+			di.total_blocks += sb->st_blocks;
 
-		links_len = snprintf(NULL, 0, "%ld", (long)sb->st_nlink);
-		if (links_len > max_links_width) {
-			max_links_width = links_len;
-		}
+			links_len = snprintf(NULL, 0, "%ld", (long)sb->st_nlink);
+			if (links_len > di.max_links_width) {
+				di.max_links_width = links_len;
+			}
 
-		pw = getpwuid(sb->st_uid);
-		owner_len = pw ? strlen(pw->pw_name) : 0;
-		if (owner_len > max_owner_width) {
-			max_owner_width = owner_len;
-		}
+			pw = getpwuid(sb->st_uid);
+			owner_len = pw ? strlen(pw->pw_name) : 0;
+			if (owner_len > di.max_owner_width) {
+				di.max_owner_width = owner_len;
+			}
 
-		gr = getgrgid(sb->st_gid);
-		group_len = gr ? strlen(gr->gr_name) : 0;
-		if (group_len > max_group_width) {
-			max_group_width = group_len;
-		}
+			gr = getgrgid(sb->st_gid);
+			group_len = gr ? strlen(gr->gr_name) : 0;
+			if (group_len > di.max_group_width) {
+				di.max_group_width = group_len;
+			}
 
-		size_len = snprintf(NULL, 0, "%ld", (long)sb->st_size);
-		if (size_len > max_size_width) {
-			max_size_width = size_len;
+			size_len = snprintf(NULL, 0, "%ld", (long)sb->st_size);
+			if (size_len > di.max_size_width) {
+				di.max_size_width = size_len;
+			}
+
+			tm_ptr = localtime(&sb->st_mtime);
+			file_tm_info = *tm_ptr;
+			file_yr = file_tm_info.tm_year + 1900;
+
+			day_len = snprintf(NULL, 0, "%d", file_tm_info.tm_mday);
+			if (day_len > di.max_day_width) {
+				di.max_day_width = day_len;
+			}
+
+			if (curr_yr != file_yr) {
+				day_len = snprintf(NULL, 0, "%d", file_yr);
+			} else {
+				/* Format is guaranteed to be in HH:MM, len = 6 - \0 = 5 */
+				date_time_len = 5;
+			}
+			di.max_date_time_width = date_time_len;
 		}
 	}
 
-	/* Then print each file using the found widths */
-
-	(void)ls_opts;
-	(void)children;
+	
 
 	return 0;
 }

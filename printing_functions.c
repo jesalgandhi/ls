@@ -99,7 +99,7 @@ print_entry_long(FTSENT *entry, char *filename, ls_options *ls_opts)
 
 	/* Provide year if file year differs from current year */
 	if (curr_yr != file_yr) {
-		snprintf(date_str, sizeof(date_str), "%s %2d  %d", month_str,
+		snprintf(date_str, sizeof(date_str), "%s %2d %d", month_str,
 		         file_tm_info.tm_mday, file_yr);
 	} else {
 		snprintf(date_str, sizeof(date_str), "%s %2d %02d:%02d", month_str,
