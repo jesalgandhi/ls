@@ -17,6 +17,7 @@
 
 #include "flag_handlers.h"
 #include "ls_options.h"
+#include "sorting_functions.h"
 
 void
 print_entry(FTSENT *entry, char *filename, ls_options *ls_opts)
@@ -114,7 +115,10 @@ process_paths(char **paths, ls_options *ls_opts)
 	FTSENT *entry;
 	int fts_opts;
 	int first_entry = 1;
+	int (*sort_fn)(const FTSENT **, const FTSENT **);
 	/* TODO: Declare fn ptr for compare param of fts_open */
+
+	sort_fn = &lexicographical_sort;
 
 	/* Do not use fts for -d at all, just lstat */
 	if (ls_opts->o_list_directories_as_files) {
@@ -127,7 +131,7 @@ process_paths(char **paths, ls_options *ls_opts)
 		fts_opts |= FTS_SEEDOT;
 	}
 
-	if ((ftsp = fts_open(paths, fts_opts, NULL)) == NULL) {
+	if ((ftsp = fts_open(paths, fts_opts, sort_fn)) == NULL) {
 		return -1;
 	}
 
@@ -158,7 +162,7 @@ process_paths(char **paths, ls_options *ls_opts)
 		/* Prevent recursive traversal of fts if !-R */
 		if (entry->fts_info == FTS_D) {
 			/* Depth > root -> nested folder -> skip if not -R */
-			if (!ls_opts->o_recursive && entry->fts_info == FTS_D) {
+			if (!ls_opts->o_recursive) {
 				if (entry->fts_level > FTS_ROOTLEVEL) {
 					fts_set(ftsp, entry, FTS_SKIP);
 					continue;
@@ -173,26 +177,24 @@ process_paths(char **paths, ls_options *ls_opts)
 				fts_set(ftsp, entry, FTS_SKIP);
 			}
 			continue;
-		} else {
-			/* Here, we handle both files and directories */
-
-			/* Check if the entry is a directory */
-			if (entry->fts_info == FTS_D && ls_opts->o_recursive) {
-				if (!(entry->fts_level == FTS_ROOTLEVEL &&
-				      ls_opts->single_dir)) {
-					if (!first_entry) {
-						printf("\n");
-					}
-					printf("%s:\n", entry->fts_path);
-					first_entry = 0;
-				}
-				continue;
-			}
-
-			/* For non-dir files, we just process as normal */
-			process_entry(entry, entry->fts_name, ls_opts);
-			first_entry = 0;
 		}
+
+		/* Here, we handle both files and directories */
+		/* Check if the entry is a directory */
+		if (entry->fts_info == FTS_D && ls_opts->o_recursive) {
+			if (!(entry->fts_level == FTS_ROOTLEVEL && ls_opts->single_dir)) {
+				if (!first_entry) {
+					printf("\n");
+				}
+				printf("%s:\n", entry->fts_path);
+				first_entry = 0;
+			}
+			continue;
+		}
+
+		/* For non-dir files, we just process as normal */
+		process_entry(entry, entry->fts_name, ls_opts);
+		first_entry = 0;
 	}
 
 	if (errno != 0) {
