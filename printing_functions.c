@@ -50,10 +50,12 @@ sanitize_filename_malloc(const char *input, char **output)
 }
 
 void
-print_entry(FTSENT *entry, char *filename, ls_options *ls_opts)
+print_entry_short(FTSENT *entry, char *filename, ls_options *ls_opts)
 {
+	char sanitized_name[PATH_MAX];
+	sanitize_filename(filename, sanitized_name, sizeof(sanitized_name));
+	printf("%s", sanitized_name);
 
-	printf("%s", filename);
 	/* TODO print more here maybe ... */
 	(void)ls_opts;
 	(void)entry;
@@ -61,7 +63,7 @@ print_entry(FTSENT *entry, char *filename, ls_options *ls_opts)
 }
 
 void
-print_entry_long_format(FTSENT *entry, char *filename, ls_options *ls_opts)
+print_entry_long(FTSENT *entry, char *filename, ls_options *ls_opts)
 {
 	struct stat *sb = entry->fts_statp;
 	char sym_str[SYMBOLIC_STRING_SIZE];

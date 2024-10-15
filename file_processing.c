@@ -45,21 +45,6 @@ process_entries(FTSENT *children, ls_options *ls_opts)
 }
 
 int
-process_entry(FTSENT *entry, char *filename, ls_options *ls_opts)
-{
-
-	char sanitized_name[PATH_MAX];
-	sanitize_filename(filename, sanitized_name, sizeof(sanitized_name));
-
-	if (ls_opts->o_long_format) {
-		print_entry_long_format(entry, sanitized_name, ls_opts);
-	} else {
-		print_entry(entry, sanitized_name, ls_opts);
-	}
-	return 0;
-}
-
-int
 process_paths(char **paths, ls_options *ls_opts)
 {
 	FTS *ftsp;
@@ -69,12 +54,6 @@ process_paths(char **paths, ls_options *ls_opts)
 	int (*sort_fn)(const FTSENT **, const FTSENT **);
 
 	sort_fn = &lexicographical_sort;
-
-	/* Do not use fts for -d at all, just lstat */
-	if (ls_opts->o_list_directories_as_files) {
-		handle_dirs_as_files_d(paths, ls_opts, process_entry);
-		return 0;
-	}
 
 	fts_opts = FTS_PHYSICAL | FTS_NOCHDIR;
 	if (ls_opts->o_include_dot_entries) {
@@ -148,7 +127,7 @@ process_paths(char **paths, ls_options *ls_opts)
 				    (handle_hidden_files_a_A(child->fts_name, ls_opts) == 0)) {
 					continue;
 				}
-				process_entry(child, child->fts_name, ls_opts);
+				print_entry_short(child, child->fts_name, ls_opts);
 			}
 		}
 	}

@@ -18,11 +18,4 @@ int process_entries(FTSENT *children, ls_options *ls_opts);
 
 int process_entry(FTSENT *entry, char *filename, ls_options *ls_opts);
 
-/* Prints file in short format */
-void print_entry(FTSENT *entry, char *filename, ls_options *ls_opts);
-
-/* Prints file in long format */
-void print_entry_long_format(FTSENT *entry, char *filename,
-                             ls_options *ls_opts);
-
 #endif

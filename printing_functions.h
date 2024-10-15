@@ -25,10 +25,9 @@ void sanitize_filename(const char *input, char *output, size_t size);
 void sanitize_filename_malloc(const char *input, char **output);
 
 /* Prints an entry in short format */
-void print_entry(FTSENT *entry, char *filename, ls_options *ls_opts);
+void print_entry_short(FTSENT *entry, char *filename, ls_options *ls_opts);
 
 /* Prints an entry in long format */
-void print_entry_long_format(FTSENT *entry, char *filename,
-                             ls_options *ls_opts);
+void print_entry_long(FTSENT *entry, char *filename, ls_options *ls_opts);
 
 #endif
