@@ -116,7 +116,6 @@ process_paths(char **paths, ls_options *ls_opts)
 	int fts_opts;
 	int first_entry = 1;
 	int (*sort_fn)(const FTSENT **, const FTSENT **);
-	/* TODO: Declare fn ptr for compare param of fts_open */
 
 	sort_fn = &lexicographical_sort;
 
@@ -144,44 +143,35 @@ process_paths(char **paths, ls_options *ls_opts)
 			        strerror(entry->fts_errno));
 			continue;
 		}
+		if (entry->fts_info == FTS_DC) {
+			fprintf(stderr, "directory %s: causes a cycle\n", entry->fts_path);
+			continue;
+		}
 
-		/* Print root-level dirs if > 1 paths given */
-		if (!ls_opts->o_recursive && entry->fts_level == FTS_ROOTLEVEL &&
-		    (entry->fts_info == FTS_D || entry->fts_info == FTS_DP)) {
-			/* Only show dir name for pre-order dirs */
-			if (!ls_opts->single_dir && entry->fts_info == FTS_D) {
-				if (!first_entry) {
-					printf("\n");
-				}
-				printf("%s:\n", entry->fts_path);
-				first_entry = 0;
-			}
+		/* Prevent duplicate processing of root-level post-order dirs */
+		if (entry->fts_info == FTS_DP && entry->fts_level == FTS_ROOTLEVEL) {
 			continue;
 		}
 
 		/* Prevent recursive traversal of fts if !-R */
-		if (entry->fts_info == FTS_D) {
-			/* Depth > root -> nested folder -> skip if not -R */
-			if (!ls_opts->o_recursive) {
-				if (entry->fts_level > FTS_ROOTLEVEL) {
-					fts_set(ftsp, entry, FTS_SKIP);
-					continue;
-				}
-			}
+		/* Depth > root -> nested folder -> skip if not -R */
+		if ((entry->fts_info == FTS_D || entry->fts_info == FTS_DP) &&
+		    !ls_opts->o_recursive && entry->fts_level > FTS_ROOTLEVEL) {
+			fts_set(ftsp, entry, FTS_SKIP);
+			continue;
 		}
 
-		/* Process non-hidden files, unless flagged otherwise */
+		/* Exclude hidden files/skip hidden post-order dirs if triggered with
+		 * -aA */
 		if ((entry->fts_name[0] == '.') &&
 		    (handle_hidden_files_a_A(entry->fts_name, ls_opts) == 0)) {
-			if (entry->fts_info == FTS_D && entry->fts_level != FTS_ROOTLEVEL) {
+			if (entry->fts_info == FTS_D && entry->fts_level > FTS_ROOTLEVEL) {
 				fts_set(ftsp, entry, FTS_SKIP);
 			}
 			continue;
 		}
 
-		/* Here, we handle both files and directories */
-		/* Check if the entry is a directory */
-		if (entry->fts_info == FTS_D && ls_opts->o_recursive) {
+		if (entry->fts_info == FTS_D) {
 			if (!(entry->fts_level == FTS_ROOTLEVEL && ls_opts->single_dir)) {
 				if (!first_entry) {
 					printf("\n");
@@ -192,7 +182,6 @@ process_paths(char **paths, ls_options *ls_opts)
 			continue;
 		}
 
-		/* For non-dir files, we just process as normal */
 		process_entry(entry, entry->fts_name, ls_opts);
 		first_entry = 0;
 	}
