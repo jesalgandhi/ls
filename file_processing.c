@@ -3,6 +3,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include <ctype.h>
 #include <errno.h>
 #include <fts.h>
 #include <grp.h>
@@ -13,24 +14,34 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
-#include <vis.h>
 
 #include "flag_handlers.h"
 #include "ls_options.h"
 #include "sorting_functions.h"
 
 void
+sanitize_filename(const char *input, char *output, size_t size)
+{
+	size_t i = 0, j = 0;
+	while (i < size - 1 && input[i] != '\0') {
+		if (isprint((unsigned char)input[i])) {
+			output[j++] = input[i];
+		} else {
+			output[j++] = '?';
+		}
+		i++;
+	}
+	output[j] = '\0';
+}
+
+void
 print_entry(FTSENT *entry, char *filename, ls_options *ls_opts)
 {
-	char visbuf[PATH_MAX * 4 + 1];
-	struct stat *sb = entry->fts_statp;
 
-	strvis(visbuf, filename, VIS_GLOB);
-
-	printf("%s", visbuf);
+	printf("%s", filename);
 	/* TODO print more here maybe ... */
 	(void)ls_opts;
-	(void)sb;
+	(void)entry;
 	printf("\n");
 }
 
@@ -97,13 +108,14 @@ print_entry_long_format(FTSENT *entry, char *filename, ls_options *ls_opts)
 int
 process_entry(FTSENT *entry, char *filename, ls_options *ls_opts)
 {
-	struct stat *sb = entry->fts_statp;
 
-	(void)sb;
+	char sanitized_name[PATH_MAX];
+	sanitize_filename(filename, sanitized_name, sizeof(sanitized_name));
+
 	if (ls_opts->o_long_format) {
-		print_entry_long_format(entry, filename, ls_opts);
+		print_entry_long_format(entry, sanitized_name, ls_opts);
 	} else {
-		print_entry(entry, filename, ls_opts);
+		print_entry(entry, sanitized_name, ls_opts);
 	}
 	return 0;
 }
@@ -139,12 +151,13 @@ process_paths(char **paths, ls_options *ls_opts)
 		/* Ensure entry is not erroneous */
 		if (entry->fts_info == FTS_ERR || entry->fts_info == FTS_NS ||
 		    entry->fts_info == FTS_DNR) {
-			fprintf(stderr, "%s: %s\n", entry->fts_path,
+			fprintf(stderr, "%s: %s: %s\n", getprogname(), entry->fts_name,
 			        strerror(entry->fts_errno));
 			continue;
 		}
 		if (entry->fts_info == FTS_DC) {
-			fprintf(stderr, "directory %s: causes a cycle\n", entry->fts_path);
+			fprintf(stderr, "%s: %s: causes a cycle\n", getprogname(),
+			        entry->fts_name);
 			continue;
 		}
 
@@ -172,7 +185,7 @@ process_paths(char **paths, ls_options *ls_opts)
 		}
 
 		if (entry->fts_info == FTS_D) {
-
+			/* Preface dir with dir name */
 			if (!(entry->fts_level == FTS_ROOTLEVEL && ls_opts->single_dir)) {
 				if (!first_entry) {
 					printf("\n");
@@ -182,6 +195,7 @@ process_paths(char **paths, ls_options *ls_opts)
 			}
 
 			children = fts_children(ftsp, 0);
+
 			for (child = children; child != NULL; child = child->fts_link) {
 				if ((child->fts_name[0] == '.') &&
 				    (handle_hidden_files_a_A(child->fts_name, ls_opts) == 0)) {
