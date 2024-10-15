@@ -112,7 +112,7 @@ int
 process_paths(char **paths, ls_options *ls_opts)
 {
 	FTS *ftsp;
-	FTSENT *entry;
+	FTSENT *entry, *children, *child;
 	int fts_opts;
 	int first_entry = 1;
 	int (*sort_fn)(const FTSENT **, const FTSENT **);
@@ -167,11 +167,12 @@ process_paths(char **paths, ls_options *ls_opts)
 		    (handle_hidden_files_a_A(entry->fts_name, ls_opts) == 0)) {
 			if (entry->fts_info == FTS_D && entry->fts_level > FTS_ROOTLEVEL) {
 				fts_set(ftsp, entry, FTS_SKIP);
+				continue;
 			}
-			continue;
 		}
 
 		if (entry->fts_info == FTS_D) {
+
 			if (!(entry->fts_level == FTS_ROOTLEVEL && ls_opts->single_dir)) {
 				if (!first_entry) {
 					printf("\n");
@@ -179,11 +180,16 @@ process_paths(char **paths, ls_options *ls_opts)
 				printf("%s:\n", entry->fts_path);
 				first_entry = 0;
 			}
-			continue;
-		}
 
-		process_entry(entry, entry->fts_name, ls_opts);
-		first_entry = 0;
+			children = fts_children(ftsp, 0);
+			for (child = children; child != NULL; child = child->fts_link) {
+				if ((child->fts_name[0] == '.') &&
+				    (handle_hidden_files_a_A(child->fts_name, ls_opts) == 0)) {
+					continue;
+				}
+				process_entry(child, child->fts_name, ls_opts);
+			}
+		}
 	}
 
 	if (errno != 0) {
