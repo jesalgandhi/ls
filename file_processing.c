@@ -15,6 +15,7 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "dir_info.h"
 #include "flag_handlers.h"
 #include "ls_options.h"
 #include "printing_functions.h"
@@ -24,15 +25,65 @@ int
 process_entries(FTSENT *children, ls_options *ls_opts)
 {
 
-	FTSENT *child = children;
-	char sanitized_name[PATH_MAX];
-	sanitize_filename(child->fts_name, sanitized_name, sizeof(sanitized_name));
+	FTSENT *child;
+	struct stat *sb;
+	struct passwd *pw;
+	struct group *gr;
+	char *sanitized_name;
+
+	dir_info di = {-1};
+	di.total_blocks = 0;
+
+	int size_len;
+	int links_len;
+	int owner_len;
+	int group_len;
+	int day_len;
+	int date_time_len;
+	int inode_len;
+	int block_size_len;
 
 	/* First find widths of props of all files */
 	for (child = children; child != NULL; child = child->fts_link) {
 		if ((child->fts_name[0] == '.') &&
 		    (handle_hidden_files_a_A(child->fts_name, ls_opts) == 0)) {
 			continue;
+		}
+
+		/* Only free in print IF !o_raw_print_non_printable */
+		if (!ls_opts->o_raw_print_non_printable) {
+			sanitize_filename_malloc(child->fts_name, &sanitized_name);
+			child->fts_pointer = sanitized_name;
+		} else {
+			child->fts_pointer = child->fts_name;
+		}
+
+		sb = child->fts_statp;
+		total_blocks += sb->st_blocks;
+
+		if (ls_opts->o_long_format) {
+		}
+
+		links_len = snprintf(NULL, 0, "%ld", (long)sb->st_nlink);
+		if (links_len > max_links_width) {
+			max_links_width = links_len;
+		}
+
+		pw = getpwuid(sb->st_uid);
+		owner_len = pw ? strlen(pw->pw_name) : 0;
+		if (owner_len > max_owner_width) {
+			max_owner_width = owner_len;
+		}
+
+		gr = getgrgid(sb->st_gid);
+		group_len = gr ? strlen(gr->gr_name) : 0;
+		if (group_len > max_group_width) {
+			max_group_width = group_len;
+		}
+
+		size_len = snprintf(NULL, 0, "%ld", (long)sb->st_size);
+		if (size_len > max_size_width) {
+			max_size_width = size_len;
 		}
 	}
 
@@ -115,8 +166,9 @@ process_paths(char **paths, ls_options *ls_opts)
 
 			children = fts_children(ftsp, 0);
 
-			/* Long format requires processing all entries then printing */
-			if (ls_opts->o_long_format) {
+			/* Long format/ requires processing all entries then printing */
+			if (ls_opts->o_long_format || ls_opts->o_print_inode ||
+			    ls_opts->o_display_block_usage) {
 				process_entries(children, ls_opts);
 				continue;
 			}

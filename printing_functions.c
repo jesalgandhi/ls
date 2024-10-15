@@ -53,11 +53,14 @@ void
 print_entry_short(FTSENT *entry, char *filename, ls_options *ls_opts)
 {
 	char sanitized_name[PATH_MAX];
-	sanitize_filename(filename, sanitized_name, sizeof(sanitized_name));
-	printf("%s", sanitized_name);
+	if (!ls_opts->o_raw_print_non_printable) {
+		sanitize_filename(filename, sanitized_name, sizeof(sanitized_name));
+		printf("%s", sanitized_name);
+	} else {
+		printf("%s", filename);
+	}
 
 	/* TODO print more here maybe ... */
-	(void)ls_opts;
 	(void)entry;
 	printf("\n");
 }

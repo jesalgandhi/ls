@@ -14,8 +14,7 @@
 
 int process_paths(char **paths, ls_options *ls_opts);
 
+/* Preprocessing function for print_entry_long */
 int process_entries(FTSENT *children, ls_options *ls_opts);
-
-int process_entry(FTSENT *entry, char *filename, ls_options *ls_opts);
 
 #endif
