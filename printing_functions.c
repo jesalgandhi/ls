@@ -11,6 +11,8 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "flag_handlers.h"
+
 void
 sanitize_filename(const char *input, char *output, size_t size)
 {
@@ -66,61 +68,132 @@ print_entry_short(FTSENT *entry, char *filename, ls_options *ls_opts)
 }
 
 void
-print_entry_long(FTSENT *entry, char *filename, ls_options *ls_opts)
+print_children(FTSENT *children, ls_options *ls_opts, dir_info *di)
 {
-	struct stat *sb = entry->fts_statp;
+	FTSENT *child;
+	char *filename;
+	struct stat *sb;
+
 	char sym_str[SYMBOLIC_STRING_SIZE];
 	char date_str[DATE_STRING_SIZE];
 	char month_str[ABBREVIATED_MONTH_SIZE];
+	char fullpath[PATH_MAX + 1];
 	char link_target[PATH_MAX + 1];
-	int curr_yr;
-	int file_yr;
-	struct passwd *pw;
-	struct group *gr;
+	char inode_str[MAX_INODE_STR_SIZE];
+	char blocks_str[MAX_BLOCKS_STR_SIZE];
 
-	/* Get current and file time info */
-	time_t t = time(NULL);
-	struct tm *tm_ptr;
+	time_t t;
 	struct tm curr_tm_info;
 	struct tm file_tm_info;
-	tm_ptr = localtime(&t);
-	curr_tm_info = *tm_ptr;
-	tm_ptr = localtime(&sb->st_mtime);
-	file_tm_info = *tm_ptr;
+	int curr_yr;
+	int file_yr;
+
+	struct passwd *pw;
+	struct group *gr;
+	ssize_t len;
+	char *sanitized_link_target;
+
+	t = time(NULL);
+	localtime_r(&t, &curr_tm_info);
 	curr_yr = curr_tm_info.tm_year + 1900;
-	file_yr = file_tm_info.tm_year + 1900;
 
-	pw = getpwuid(sb->st_uid);
-	gr = getgrgid(sb->st_gid);
-
-	(void)ls_opts;
-	strmode(sb->st_mode, sym_str);
-	strftime(month_str, sizeof(month_str), "%b", &file_tm_info);
-
-	/* Provide year if file year differs from current year */
-	if (curr_yr != file_yr) {
-		snprintf(date_str, sizeof(date_str), "%s %2d %d", month_str,
-		         file_tm_info.tm_mday, file_yr);
-	} else {
-		snprintf(date_str, sizeof(date_str), "%s %2d %02d:%02d", month_str,
-		         file_tm_info.tm_mday, file_tm_info.tm_hour,
-		         file_tm_info.tm_min);
+	if (ls_opts->o_long_format && di->total_blocks >= 0) {
+		printf("total %ld\n", di->total_blocks);
 	}
 
+	for (child = children; child != NULL; child = child->fts_link) {
+		if ((child->fts_name[0] == '.') &&
+		    (handle_hidden_files_a_A(child->fts_name, ls_opts) == 0)) {
+			continue;
+		}
 
-	printf("%-11s %-1ld %-7s %-8s %4ld %s %s", sym_str, (long)sb->st_nlink,
-	       pw ? pw->pw_name : "", gr ? gr->gr_name : "", (long)sb->st_size,
-	       date_str, filename);
+		/* Contains sanitized filename or regular filename */
+		filename = (char *)child->fts_pointer;
 
-	/* Follow through symbolic links */
-	if (S_ISLNK(sb->st_mode)) {
-		ssize_t len =
-			readlink(entry->fts_accpath, link_target, sizeof(link_target) - 1);
-		if (len != -1) {
-			link_target[len] = '\0';
-			printf(" -> %s", link_target);
+		inode_str[0] = '\0';
+		blocks_str[0] = '\0';
+
+		sb = child->fts_statp;
+
+		localtime_r(&sb->st_mtime, &file_tm_info);
+		file_yr = file_tm_info.tm_year + 1900;
+		strmode(sb->st_mode, sym_str);
+		strftime(month_str, sizeof(month_str), "%b", &file_tm_info);
+
+		if (curr_yr != file_yr) {
+			/* Year is different, display year instead of time */
+			snprintf(date_str, sizeof(date_str), "%s %*d %*d", month_str,
+			         di->max_day_width, file_tm_info.tm_mday,
+			         di->max_date_time_width, file_yr);
+		} else {
+			/* Same year, display time */
+			snprintf(date_str, sizeof(date_str), "%s %*d %02d:%02d", month_str,
+			         di->max_day_width, file_tm_info.tm_mday,
+			         file_tm_info.tm_hour, file_tm_info.tm_min);
+		}
+
+		/* Prepare inode and block size strings if needed */
+		if (ls_opts->o_print_inode) {
+			snprintf(inode_str, sizeof(inode_str), "%*ld ", di->max_inode_width,
+			         (long)sb->st_ino);
+		}
+
+		if (ls_opts->o_display_block_usage) {
+			snprintf(blocks_str, sizeof(blocks_str), "%*ld ",
+			         di->max_block_size_width, (long)sb->st_blocks);
+		}
+
+		if (ls_opts->o_long_format) {
+			pw = getpwuid(sb->st_uid);
+			gr = getgrgid(sb->st_gid);
+
+			printf("%s%s%s %*ld %-*s %-*s %*ld %s %s", inode_str, blocks_str,
+			       sym_str, di->max_links_width, (long)sb->st_nlink,
+			       di->max_owner_width, pw ? pw->pw_name : "",
+			       di->max_group_width, gr ? gr->gr_name : "",
+			       di->max_size_width, (long)sb->st_size, date_str, filename);
+
+			/* Check for symlinks */
+			if (S_ISLNK(sb->st_mode)) {
+
+				/* Path needs to be constructed for symlink because we are
+				 * traversing children as a dir */
+				strlcpy(fullpath, child->fts_path, sizeof(fullpath));
+				len = strlen(fullpath);
+				if (len > 0 && fullpath[len - 1] != '/') {
+					strlcat(fullpath, "/", sizeof(fullpath));
+				}
+				strlcat(fullpath, child->fts_name, sizeof(fullpath));
+
+				len = readlink(fullpath, link_target, sizeof(link_target) - 1);
+				if (len != -1) {
+					link_target[len] = '\0';
+					/* Sanitize link target if required */
+					if (!ls_opts->o_raw_print_non_printable) {
+						sanitize_filename_malloc(link_target,
+						                         &sanitized_link_target);
+					} else {
+						sanitized_link_target = link_target;
+					}
+					printf(" -> %s", sanitized_link_target);
+
+					/* Free if it was sanitized */
+					if (!ls_opts->o_raw_print_non_printable) {
+						free(sanitized_link_target);
+					}
+				}
+			}
+
+			printf("\n");
+
+		} else {
+			/* short format */
+			printf("%s%s%s\n", inode_str, blocks_str, filename);
+		}
+
+		/* Free the sanitized filename only if it was malloc'ed */
+		if (!ls_opts->o_raw_print_non_printable) {
+			free(filename);
 		}
 	}
-
-	printf("\n");
 }

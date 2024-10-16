@@ -135,8 +135,7 @@ process_entries(FTSENT *children, ls_options *ls_opts)
 		}
 	}
 
-	
-
+	print_children(children, ls_opts, &di);
 	return 0;
 }
 
