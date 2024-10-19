@@ -140,13 +140,15 @@ process_entries(FTSENT *children, ls_options *ls_opts)
 }
 
 int
-process_paths(char **paths, ls_options *ls_opts)
+process_paths(char **paths, ls_options *ls_opts, int is_directory)
 {
 	FTS *ftsp;
 	FTSENT *entry, *children, *child;
 	int fts_opts;
 	int first_entry = 1;
 	int (*sort_fn)(const FTSENT **, const FTSENT **);
+
+	(void)is_directory;
 
 	sort_fn = &lexicographical_sort;
 
@@ -197,6 +199,17 @@ process_paths(char **paths, ls_options *ls_opts)
 			}
 		}
 
+		if (entry->fts_info != FTS_D) {
+			if (ls_opts->o_long_format || ls_opts->o_print_inode ||
+			    ls_opts->o_display_block_usage) {
+				process_entries(entry, ls_opts);
+				break;
+			} else {
+				print_entry_short(entry, entry->fts_path, ls_opts);
+			}
+			continue;
+		}
+
 		if (entry->fts_info == FTS_D) {
 			/* Preface dir with dir name */
 			if (!(entry->fts_level == FTS_ROOTLEVEL && ls_opts->single_dir)) {
@@ -207,13 +220,13 @@ process_paths(char **paths, ls_options *ls_opts)
 				first_entry = 0;
 			}
 
-
 			children = fts_children(ftsp, 0);
 
 			/* Long format/ requires processing all entries then printing */
 			if (ls_opts->o_long_format || ls_opts->o_print_inode ||
 			    ls_opts->o_display_block_usage) {
 				process_entries(children, ls_opts);
+				first_entry = 0;
 				continue;
 			}
 

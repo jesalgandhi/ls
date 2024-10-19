@@ -3,9 +3,8 @@
 
 typedef struct ls_options {
 
-	int current_dir; /* Enabled if user does not provide any files */
-	int single_dir;  /* Enabled if single dir is provided (no directory
-	                    name before listing for !-R) */
+	int single_dir; /* Enabled if single dir is provided (no directory
+	                   name before listing for !-R) */
 
 	/* Available flags */
 	int o_list_all_except_dot;       /* -A: list all entries except . or .. */

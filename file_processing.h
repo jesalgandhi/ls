@@ -12,7 +12,7 @@
 
 #include "ls_options.h"
 
-int process_paths(char **paths, ls_options *ls_opts);
+int process_paths(char **paths, ls_options *ls_opts, int is_directory);
 
 /* Preprocessing function for print_entry_long */
 int process_entries(FTSENT *children, ls_options *ls_opts);

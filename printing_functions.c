@@ -147,7 +147,7 @@ print_children(FTSENT *children, ls_options *ls_opts, dir_info *di)
 			pw = getpwuid(sb->st_uid);
 			gr = getgrgid(sb->st_gid);
 
-			printf("%s%s%s %*ld %-*s %-*s %*ld %s %s", inode_str, blocks_str,
+			printf("%s%s%s %*ld %-*s  %-*s  %*ld %s %s", inode_str, blocks_str,
 			       sym_str, di->max_links_width, (long)sb->st_nlink,
 			       di->max_owner_width, pw ? pw->pw_name : "",
 			       di->max_group_width, gr ? gr->gr_name : "",

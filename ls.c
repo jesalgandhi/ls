@@ -44,51 +44,63 @@ print_opts(ls_options *ls_opts)
 int
 main(int argc, char **argv)
 {
+	struct stat sb;
 	ls_options ls_opts = {0};
 	int i;
 	int num_paths;
-	char **paths;
+	char **file_paths;
+	char **dir_paths;
+	int file_count;
+	int dir_count;
 	int optind = parse_commandline_args(argc, argv, &ls_opts);
 
 	num_paths = argc - optind;
+
+	if (num_paths == 0) {
+		num_paths = 1;
+		argv[optind] = ".";
+	}
 	if (num_paths <= 1) {
 		ls_opts.single_dir = 1;
 	}
 
-	/* Files are accessible in argv from [optind, argc) */
-	if (!ls_opts.current_dir) {
-		num_paths = argc - optind;
-
-		/* +1 because paths must be NULL-terminated for fts(3) */
-		paths = malloc((num_paths + 1) * sizeof(char *));
-		if (paths == NULL) {
-			fprintf(stderr, "%s: %s", getprogname(), strerror(errno));
-			exit(EXIT_FAILURE);
-		}
-		for (i = 0; i < num_paths; i++) {
-			paths[i] = argv[optind + i];
-		}
-		paths[num_paths] = NULL;
-	} else {
-		paths = malloc(2 * sizeof(char *));
-		if (paths == NULL) {
-			fprintf(stderr, "%s: %s", getprogname(), strerror(errno));
-			exit(EXIT_FAILURE);
-		}
-		paths[0] = ".";
-		paths[1] = NULL;
-	}
-
-	if (process_paths(paths, &ls_opts) < 0) {
+	/* Allocate space for files/dirs separately */
+	file_paths = malloc((num_paths + 1) * sizeof(char *));
+	dir_paths = malloc((num_paths + 1) * sizeof(char *));
+	if (file_paths == NULL || dir_paths == NULL) {
 		fprintf(stderr, "%s: %s\n", getprogname(), strerror(errno));
-		if (!ls_opts.current_dir) {
-			free(paths);
-		}
 		exit(EXIT_FAILURE);
 	}
-	if (!ls_opts.current_dir) {
-		free(paths);
+
+	file_count = 0;
+	dir_count = 0;
+
+	/* Files are accessible from [optind, argc) */
+	for (i = optind; i < argc; i++) {
+		char *path = argv[i];
+		if (stat(path, &sb) == -1) {
+			fprintf(stderr, "%s: %s: %s\n", getprogname(), path,
+			        strerror(errno));
+			continue;
+		}
+		if (S_ISDIR(sb.st_mode)) {
+			dir_paths[dir_count++] = path;
+		} else {
+			file_paths[file_count++] = path;
+		}
 	}
+
+	file_paths[file_count] = NULL;
+	dir_paths[dir_count] = NULL;
+
+	if (file_count > 0) {
+		process_paths(file_paths, &ls_opts, 0);
+	}
+
+	if (dir_count > 0) {
+		process_paths(dir_paths, &ls_opts, 1);
+	}
+
 
 	/*
 	print_opts(&ls_opts);

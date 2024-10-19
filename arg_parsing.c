@@ -88,10 +88,5 @@ parse_commandline_args(int argc, char **argv, ls_options *ls_opts)
 		}
 	}
 
-	/* Enable current_dir if no file args are passed */
-	if (optind >= argc) {
-		ls_opts->current_dir = 1;
-	}
-
 	return optind;
 }
