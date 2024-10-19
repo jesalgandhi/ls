@@ -13,40 +13,13 @@
 #include "file_processing.h"
 #include "ls_options.h"
 
-/* for testing -- delete later */
-void
-print_opts(ls_options *ls_opts)
-{
-	printf("single_dir: %d\n", ls_opts->single_dir);
-	printf("o_list_all_except_dot: %d\n", ls_opts->o_list_all_except_dot);
-	printf("o_include_dot_entries: %d\n", ls_opts->o_include_dot_entries);
-	printf("o_use_status_time: %d\n", ls_opts->o_use_status_time);
-	printf("o_list_directories_as_files: %d\n",
-	       ls_opts->o_list_directories_as_files);
-	printf("o_type_indicate: %d\n", ls_opts->o_type_indicate);
-	printf("o_no_sorting: %d\n", ls_opts->o_no_sorting);
-	printf("o_human_readable_size: %d\n", ls_opts->o_human_readable_size);
-	printf("o_print_inode: %d\n", ls_opts->o_print_inode);
-	printf("o_report_kb: %d\n", ls_opts->o_report_kb);
-	printf("o_long_format: %d\n", ls_opts->o_long_format);
-	printf("o_numeric_ids: %d\n", ls_opts->o_numeric_ids);
-	printf("o_f_non_printable: %d\n", ls_opts->o_f_non_printable);
-	printf("o_recursive: %d\n", ls_opts->o_recursive);
-	printf("o_reverse_sort: %d\n", ls_opts->o_reverse_sort);
-	printf("o_sort_by_size: %d\n", ls_opts->o_sort_by_size);
-	printf("o_display_block_usage: %d\n", ls_opts->o_display_block_usage);
-	printf("o_sort_by_mod_time: %d\n", ls_opts->o_sort_by_mod_time);
-	printf("o_use_access_time: %d\n", ls_opts->o_use_access_time);
-	printf("o_raw_print_non_printable: %d\n",
-	       ls_opts->o_raw_print_non_printable);
-}
-
 int
 main(int argc, char **argv)
 {
 	struct stat sb;
 	ls_options ls_opts = {0};
 	int i;
+	char *path;
 	int num_paths;
 	char **file_paths;
 	char **dir_paths;
@@ -58,7 +31,17 @@ main(int argc, char **argv)
 
 	if (num_paths == 0) {
 		num_paths = 1;
-		argv[optind] = ".";
+		ls_opts.single_dir = 1;
+		dir_paths = malloc(2 * sizeof(char *));
+		if (dir_paths == NULL) {
+			fprintf(stderr, "%s: %s\n", getprogname(), strerror(errno));
+			exit(EXIT_FAILURE);
+		}
+		dir_paths[0] = ".";
+		dir_paths[1] = NULL;
+		process_paths(dir_paths, &ls_opts, 1);
+		free(dir_paths);
+		return EXIT_SUCCESS;
 	}
 	if (num_paths <= 1) {
 		ls_opts.single_dir = 1;
@@ -77,7 +60,7 @@ main(int argc, char **argv)
 
 	/* Files are accessible from [optind, argc) */
 	for (i = optind; i < argc; i++) {
-		char *path = argv[i];
+		path = argv[i];
 		if (stat(path, &sb) == -1) {
 			fprintf(stderr, "%s: %s: %s\n", getprogname(), path,
 			        strerror(errno));
@@ -101,9 +84,5 @@ main(int argc, char **argv)
 		process_paths(dir_paths, &ls_opts, 1);
 	}
 
-
-	/*
-	print_opts(&ls_opts);
-	*/
 	return EXIT_SUCCESS;
 }
