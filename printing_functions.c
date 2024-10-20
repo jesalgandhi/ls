@@ -1,5 +1,7 @@
 #include "printing_functions.h"
 
+#include <sys/statvfs.h>
+
 #include <ctype.h>
 #include <errno.h>
 #include <grp.h>
@@ -12,6 +14,19 @@
 #include <unistd.h>
 
 #include "flag_handlers.h"
+
+void
+switch_k_to_K(char *file_size_str)
+{
+	int i = FILESIZE_STR_SIZE;
+	while (i > 0) {
+		if (file_size_str[i] == 'k') {
+			file_size_str[i] = 'K';
+			break;
+		}
+		i--;
+	}
+}
 
 void
 sanitize_filename(const char *input, char *output, size_t size)
@@ -83,6 +98,7 @@ print_children(FTSENT *children, ls_options *ls_opts, dir_info *di)
 	char link_target[PATH_MAX + 1];
 	char inode_str[MAX_INODE_STR_SIZE];
 	char blocks_str[MAX_BLOCKS_STR_SIZE];
+	char file_size_str[FILESIZE_STR_SIZE];
 
 	time_t t;
 	struct tm curr_tm_info;
@@ -94,13 +110,31 @@ print_children(FTSENT *children, ls_options *ls_opts, dir_info *di)
 	struct group *gr;
 	ssize_t len;
 	char *sanitized_link_target;
+	long blocksizep;
 
 	t = time(NULL);
 	localtime_r(&t, &curr_tm_info);
 	curr_yr = curr_tm_info.tm_year + 1900;
 
+	getbsize(NULL, &blocksizep);
+
 	if (ls_opts->o_long_format && di->total_blocks >= 0) {
-		printf("total %ld\n", di->total_blocks);
+		/* blocks are in units of 512 bytes, so divide then * by block size
+		 */
+		if (ls_opts->o_human_readable_size) {
+			if (humanize_number(
+					file_size_str, sizeof(file_size_str),
+					(di->total_blocks * 512) / blocksizep, NULL, HN_AUTOSCALE,
+					HN_NOSPACE | HN_B | HN_DIVISOR_1000 | HN_DECIMAL) != -1) {
+
+				switch_k_to_K(file_size_str);
+				printf("total %s\n", file_size_str);
+			} else {
+				fprintf(stderr, "%s: %s", getprogname(), strerror(errno));
+			}
+		} else {
+			printf("total %ld\n", (di->total_blocks * 512) / blocksizep);
+		}
 	}
 
 	for (child = children; child != NULL; child = child->fts_link) {
@@ -142,18 +176,37 @@ print_children(FTSENT *children, ls_options *ls_opts, dir_info *di)
 
 		if (ls_opts->o_display_block_usage) {
 			snprintf(blocks_str, sizeof(blocks_str), "%*ld ",
-			         di->max_block_size_width, (long)sb->st_blocks);
+			         di->max_block_size_width,
+			         (long)(sb->st_blocks * 512) / blocksizep);
 		}
 
 		if (ls_opts->o_long_format) {
 			pw = getpwuid(sb->st_uid);
 			gr = getgrgid(sb->st_gid);
 
-			printf("%s%s%s %*ld %-*s  %-*s  %*ld %s %s", inode_str, blocks_str,
-			       sym_str, di->max_links_width, (long)sb->st_nlink,
-			       di->max_owner_width, pw ? pw->pw_name : "",
-			       di->max_group_width, gr ? gr->gr_name : "",
-			       di->max_size_width, (long)sb->st_size, date_str, filename);
+			if (ls_opts->o_human_readable_size) {
+				if (humanize_number(file_size_str, sizeof(file_size_str),
+				                    sb->st_size, NULL, HN_AUTOSCALE,
+				                    HN_NOSPACE | HN_B | HN_DECIMAL) != -1) {
+					switch_k_to_K(file_size_str);
+					printf("%s%s%s %*ld %-*s  %-*s  %*s %s %s", inode_str,
+					       blocks_str, sym_str, di->max_links_width,
+					       (long)sb->st_nlink, di->max_owner_width,
+					       pw ? pw->pw_name : "", di->max_group_width,
+					       gr ? gr->gr_name : "", di->max_size_width,
+					       file_size_str, date_str, filename);
+				} else {
+					fprintf(stderr, "%s: %s", getprogname(), strerror(errno));
+				}
+			} else {
+				printf("%s%s%s %*ld %-*s  %-*s  %*ld %s %s", inode_str,
+				       blocks_str, sym_str, di->max_links_width,
+				       (long)sb->st_nlink, di->max_owner_width,
+				       pw ? pw->pw_name : "", di->max_group_width,
+				       gr ? gr->gr_name : "", di->max_size_width,
+				       (long)sb->st_size, date_str, filename);
+			}
+
 
 			if (ls_opts->o_type_indicate &&
 			    (type_indicator = type_indicate_F(sb->st_mode)) != ' ') {

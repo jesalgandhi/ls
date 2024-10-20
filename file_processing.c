@@ -31,6 +31,8 @@ process_entries(FTSENT *children, ls_options *ls_opts, int print_total)
 	struct passwd *pw;
 	struct group *gr;
 	char *sanitized_name;
+	char file_size_str[5];
+	int humanize_num_flags = HN_NOSPACE | HN_B | HN_DECIMAL;
 
 	time_t t = time(NULL);
 	struct tm *tm_ptr;
@@ -52,6 +54,7 @@ process_entries(FTSENT *children, ls_options *ls_opts, int print_total)
 	int date_time_len;
 	int inode_len;
 	int block_size_len;
+	long blocksizep;
 
 	tm_ptr = localtime(&t);
 	curr_tm_info = *tm_ptr;
@@ -60,6 +63,8 @@ process_entries(FTSENT *children, ls_options *ls_opts, int print_total)
 	if (!print_total) {
 		di.total_blocks = -1;
 	}
+
+	getbsize(NULL, &blocksizep);
 
 	/* Find widths of props of children files */
 	for (child = children; child != NULL; child = child->fts_link) {
@@ -82,7 +87,8 @@ process_entries(FTSENT *children, ls_options *ls_opts, int print_total)
 		if (ls_opts->o_display_block_usage) {
 			/* Check len of str representation of type as long (repeated below)
 			 */
-			block_size_len = snprintf(NULL, 0, "%ld", (long)sb->st_blocks);
+			block_size_len = snprintf(NULL, 0, "%ld",
+			                          (long)(sb->st_blocks * 512) / blocksizep);
 			if (block_size_len > di.max_block_size_width) {
 				di.max_block_size_width = block_size_len;
 			}
@@ -117,7 +123,18 @@ process_entries(FTSENT *children, ls_options *ls_opts, int print_total)
 				di.max_group_width = group_len;
 			}
 
-			size_len = snprintf(NULL, 0, "%ld", (long)sb->st_size);
+			if (ls_opts->o_human_readable_size) {
+				if (humanize_number(file_size_str, sizeof(file_size_str),
+				                    sb->st_size, NULL, HN_AUTOSCALE,
+				                    humanize_num_flags) != -1) {
+					size_len = strlen(file_size_str);
+
+				} else {
+					fprintf(stderr, "%s: %s", getprogname(), strerror(errno));
+				}
+			} else {
+				size_len = snprintf(NULL, 0, "%ld", (long)sb->st_size);
+			}
 			if (size_len > di.max_size_width) {
 				di.max_size_width = size_len;
 			}

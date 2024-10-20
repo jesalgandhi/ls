@@ -3,7 +3,7 @@
 void
 usage()
 {
-	fprintf(stderr, "Usage: %s [-AacdFfhiklnqRrSstuw] [file ...]\n",
+	fprintf(stderr, "usage: %s [-AacdFfhiklnqRrSstuw] [file ...]\n",
 	        getprogname());
 	exit(EXIT_FAILURE);
 }

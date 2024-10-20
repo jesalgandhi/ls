@@ -21,6 +21,16 @@
 #define MAX_INODE_STR_SIZE (MAX_UINT64_DIGITS + 1)
 #define MAX_BLOCKS_STR_SIZE (MAX_INT64_DIGITS + 1)
 
+
+/* 5 bytes because we want shortest meaningful positive value
+ * humanize_number(3):
+ * "To generate the shortest meaningful value, a buffer length (len) that is
+ * 6 greater the length of the suffix along with HN_AUTOSCALE will ensure
+ * the highest meaningful scale is used.  Allow one extra byte for the sign
+ * if the number is negative, and one less if the HN_NOSPACE flag is used."
+ */
+#define FILESIZE_STR_SIZE 5
+
 #include <sys/stat.h>
 #include <sys/types.h>
 
@@ -28,6 +38,8 @@
 
 #include "dir_info.h"
 #include "ls_options.h"
+
+void switch_k_to_K(char *file_size_str);
 
 /* Populates output with a sanitized filename */
 void sanitize_filename(const char *input, char *output, size_t size);
