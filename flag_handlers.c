@@ -51,3 +51,27 @@ handle_dirs_as_files_d(char **paths, ls_options *ls_opts,
 		process_entry(&entry_struct, paths[i], ls_opts);
 	}
 }
+
+char
+type_indicate_F(mode_t st_mode)
+{
+	if (S_ISDIR(st_mode)) {
+		return '/';
+	}
+	if (S_ISLNK(st_mode)) {
+		return '@';
+	}
+	if (S_ISWHT(st_mode)) {
+		return '%';
+	}
+	if (S_ISSOCK(st_mode)) {
+		return '=';
+	}
+	if (S_ISFIFO(st_mode)) {
+		return '|';
+	}
+	if ((st_mode > 0) && (S_IEXEC & st_mode)) {
+		return '*';
+	}
+	return ' ';
+}

@@ -160,7 +160,7 @@ process_paths(char **paths, ls_options *ls_opts, int is_directory)
 		sort_fn = &lexicographical_sort;
 	}
 
-	fts_opts = FTS_PHYSICAL | FTS_NOCHDIR;
+	fts_opts = FTS_PHYSICAL | FTS_NOCHDIR | FTS_WHITEOUT;
 	if (ls_opts->o_include_dot_entries) {
 		fts_opts |= FTS_SEEDOT;
 	}

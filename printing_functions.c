@@ -75,6 +75,7 @@ print_children(FTSENT *children, ls_options *ls_opts, dir_info *di)
 	char *filename;
 	struct stat *sb;
 
+	char type_indicator;
 	char sym_str[SYMBOLIC_STRING_SIZE];
 	char date_str[DATE_STRING_SIZE];
 	char month_str[ABBREVIATED_MONTH_SIZE];
@@ -154,6 +155,11 @@ print_children(FTSENT *children, ls_options *ls_opts, dir_info *di)
 			       di->max_group_width, gr ? gr->gr_name : "",
 			       di->max_size_width, (long)sb->st_size, date_str, filename);
 
+			if (ls_opts->o_type_indicate &&
+			    (type_indicator = type_indicate_F(sb->st_mode)) != ' ') {
+				printf("%c", type_indicator);
+			}
+
 			/* Check for symlinks */
 			if (S_ISLNK(sb->st_mode)) {
 
@@ -189,7 +195,13 @@ print_children(FTSENT *children, ls_options *ls_opts, dir_info *di)
 
 		} else {
 			/* short format */
-			printf("%s%s%s\n", inode_str, blocks_str, filename);
+			printf("%s%s%s", inode_str, blocks_str, filename);
+			if (ls_opts->o_type_indicate &&
+			    (type_indicator = type_indicate_F(sb->st_mode)) != ' ') {
+				printf("%c", type_indicator);
+			}
+
+			printf("\n");
 		}
 
 		/* Free the sanitized filename only if it was malloc'ed */

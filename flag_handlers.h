@@ -16,4 +16,7 @@ void handle_dirs_as_files_d(char **paths, ls_options *ls_opts,
                             int (*process_entry)(FTSENT *entry, char *filename,
                                                  ls_options *ls_opts));
 
+/* Returns type indicator to append to filename, based on info */
+char type_indicate_F(mode_t st_mode);
+
 #endif
