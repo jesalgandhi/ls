@@ -143,15 +143,10 @@ int
 process_paths(char **paths, ls_options *ls_opts, int is_directory)
 {
 	FTS *ftsp;
-	FTSENT *entry, *children, *child;
+	FTSENT *entry, *children;
 	int fts_opts;
 	int first_entry = 1;
 	int (*sort_fn)(const FTSENT **, const FTSENT **);
-
-	/* For files, create a LL to pass into process_entries
-	FTSENT *file_entries = NULL;
-	FTSENT **lastptr = &file_entries;
-	*/
 
 	sort_fn = &lexicographical_sort;
 
@@ -164,7 +159,9 @@ process_paths(char **paths, ls_options *ls_opts, int is_directory)
 		return -1;
 	}
 
-	/* if children not NULL -> files arg was passed */
+	/* Files only case: "if fts_read() has not yet been called for a hierarchy,
+	 fts_children() will return a pointer to the files in the logical direc-
+	 tory specified to fts_open()" */
 	if (!is_directory && (children = fts_children(ftsp, 0)) != NULL) {
 		process_entries(children, ls_opts);
 	}
@@ -206,7 +203,6 @@ process_paths(char **paths, ls_options *ls_opts, int is_directory)
 			}
 		}
 
-
 		if (entry->fts_info == FTS_D) {
 			/* Preface dir with dir name */
 			if (!(entry->fts_level == FTS_ROOTLEVEL && ls_opts->single_dir)) {
@@ -218,23 +214,9 @@ process_paths(char **paths, ls_options *ls_opts, int is_directory)
 			}
 
 			children = fts_children(ftsp, 0);
-
-			/* Long format/ requires processing all entries then printing */
-			if (ls_opts->o_long_format || ls_opts->o_print_inode ||
-			    ls_opts->o_display_block_usage) {
-				process_entries(children, ls_opts);
-				first_entry = 0;
-				continue;
-			}
-
-			/* For short format, we can just print directly */
-			for (child = children; child != NULL; child = child->fts_link) {
-				if ((child->fts_name[0] == '.') &&
-				    (handle_hidden_files_a_A(child->fts_name, ls_opts) == 0)) {
-					continue;
-				}
-				print_entry_short(child, child->fts_name, ls_opts);
-			}
+			process_entries(children, ls_opts);
+			first_entry = 0;
+			continue;
 		}
 	}
 
