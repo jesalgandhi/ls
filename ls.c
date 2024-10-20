@@ -30,7 +30,6 @@ main(int argc, char **argv)
 	num_paths = argc - optind;
 
 	if (num_paths == 0) {
-		num_paths = 1;
 		ls_opts.single_dir = 1;
 		dir_paths = malloc(2 * sizeof(char *));
 		if (dir_paths == NULL) {
@@ -39,7 +38,11 @@ main(int argc, char **argv)
 		}
 		dir_paths[0] = ".";
 		dir_paths[1] = NULL;
-		process_paths(dir_paths, &ls_opts, 1);
+		if (ls_opts.o_list_directories_as_files) {
+			process_paths(dir_paths, &ls_opts, 0);
+		} else {
+			process_paths(dir_paths, &ls_opts, 1);
+		}
 		free(dir_paths);
 		return EXIT_SUCCESS;
 	}
@@ -66,7 +69,9 @@ main(int argc, char **argv)
 			        strerror(errno));
 			continue;
 		}
-		if (S_ISDIR(sb.st_mode)) {
+
+		/* if -d, we do put dir under file_paths so it is not traversed */
+		if (S_ISDIR(sb.st_mode) && !ls_opts.o_list_directories_as_files) {
 			dir_paths[dir_count++] = path;
 		} else {
 			file_paths[file_count++] = path;

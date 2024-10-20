@@ -176,6 +176,7 @@ process_paths(char **paths, ls_options *ls_opts, int is_directory)
 	 tory specified to fts_open()" */
 	if (!is_directory && (children = fts_children(ftsp, 0)) != NULL) {
 		process_entries(children, ls_opts, 0);
+		return 0;
 	}
 
 	while ((entry = fts_read(ftsp)) != NULL) {

@@ -14,6 +14,9 @@
 int
 handle_hidden_files_a_A(char *filename, ls_options *ls_opts)
 {
+	if (strcmp(filename, ".") == 0 && ls_opts->o_list_directories_as_files) {
+		return -1;
+	}
 	if (ls_opts->o_include_dot_entries) {
 		return -1;
 	}
