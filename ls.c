@@ -81,8 +81,14 @@ main(int argc, char **argv)
 	}
 
 	if (dir_count > 0) {
+		if (file_count > 0) {
+			printf("\n");
+		}
 		process_paths(dir_paths, &ls_opts, 1);
 	}
+
+	free(file_paths);
+	free(dir_paths);
 
 	return EXIT_SUCCESS;
 }

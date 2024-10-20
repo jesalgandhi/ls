@@ -145,14 +145,13 @@ process_paths(char **paths, ls_options *ls_opts, int is_directory)
 	FTS *ftsp;
 	FTSENT *entry, *children, *child;
 	int fts_opts;
-	int i;
 	int first_entry = 1;
 	int (*sort_fn)(const FTSENT **, const FTSENT **);
 
-	/* For files, create a LL to pass into process_entries */
+	/* For files, create a LL to pass into process_entries
 	FTSENT *file_entries = NULL;
 	FTSENT **lastptr = &file_entries;
-
+	*/
 
 	sort_fn = &lexicographical_sort;
 
@@ -165,6 +164,10 @@ process_paths(char **paths, ls_options *ls_opts, int is_directory)
 		return -1;
 	}
 
+	/* if children not NULL -> files arg was passed */
+	if (!is_directory && (children = fts_children(ftsp, 0)) != NULL) {
+		process_entries(children, ls_opts);
+	}
 
 	while ((entry = fts_read(ftsp)) != NULL) {
 		/* Ensure entry is not erroneous */
@@ -203,13 +206,6 @@ process_paths(char **paths, ls_options *ls_opts, int is_directory)
 			}
 		}
 
-		/* Add non-dir entry to LL and process after fts_read */
-		if (!is_directory) {
-			*lastptr = entry;
-			lastptr = &entry->fts_link;
-			entry->fts_link = NULL;
-			continue;
-		}
 
 		if (entry->fts_info == FTS_D) {
 			/* Preface dir with dir name */
@@ -248,21 +244,6 @@ process_paths(char **paths, ls_options *ls_opts, int is_directory)
 	}
 	if (fts_close(ftsp) < 0) {
 		return -1;
-	}
-
-	if (!is_directory && file_entries != NULL) {
-		if (!(ls_opts->o_long_format || ls_opts->o_print_inode ||
-		      ls_opts->o_display_block_usage)) {
-			i = 0;
-			while (file_entries != NULL) {
-				print_entry_short(&file_entries[i], file_entries[i].fts_path,
-				                  ls_opts);
-				i += 1;
-				file_entries = file_entries->fts_link;
-			}
-		} else {
-			process_entries(file_entries, ls_opts);
-		}
 	}
 
 	return 0;
