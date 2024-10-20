@@ -11,3 +11,9 @@ lexicographical_sort(const FTSENT **a, const FTSENT **b)
 {
 	return strcmp((*a)->fts_name, (*b)->fts_name);
 }
+
+int
+reverse_lexicographical_sort(const FTSENT **a, const FTSENT **b)
+{
+	return strcmp((*b)->fts_name, (*a)->fts_name);
+}
