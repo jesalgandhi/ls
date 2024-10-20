@@ -23,7 +23,7 @@
 #include "sorting_functions.h"
 
 int
-process_entries(FTSENT *children, ls_options *ls_opts)
+process_entries(FTSENT *children, ls_options *ls_opts, int print_total)
 {
 
 	FTSENT *child;
@@ -56,6 +56,10 @@ process_entries(FTSENT *children, ls_options *ls_opts)
 	tm_ptr = localtime(&t);
 	curr_tm_info = *tm_ptr;
 	curr_yr = curr_tm_info.tm_year + 1900;
+
+	if (!print_total) {
+		di.total_blocks = -1;
+	}
 
 	/* Find widths of props of children files */
 	for (child = children; child != NULL; child = child->fts_link) {
@@ -92,7 +96,9 @@ process_entries(FTSENT *children, ls_options *ls_opts)
 
 		/* Below options always apply to long format */
 		if (ls_opts->o_long_format) {
-			di.total_blocks += sb->st_blocks;
+			if (print_total) {
+				di.total_blocks += sb->st_blocks;
+			}
 
 			links_len = snprintf(NULL, 0, "%ld", (long)sb->st_nlink);
 			if (links_len > di.max_links_width) {
@@ -148,7 +154,11 @@ process_paths(char **paths, ls_options *ls_opts, int is_directory)
 	int first_entry = 1;
 	int (*sort_fn)(const FTSENT **, const FTSENT **);
 
-	sort_fn = &lexicographical_sort;
+	if (ls_opts->o_no_sorting) {
+		sort_fn = NULL;
+	} else {
+		sort_fn = &lexicographical_sort;
+	}
 
 	fts_opts = FTS_PHYSICAL | FTS_NOCHDIR;
 	if (ls_opts->o_include_dot_entries) {
@@ -163,7 +173,7 @@ process_paths(char **paths, ls_options *ls_opts, int is_directory)
 	 fts_children() will return a pointer to the files in the logical direc-
 	 tory specified to fts_open()" */
 	if (!is_directory && (children = fts_children(ftsp, 0)) != NULL) {
-		process_entries(children, ls_opts);
+		process_entries(children, ls_opts, 0);
 	}
 
 	while ((entry = fts_read(ftsp)) != NULL) {
@@ -214,7 +224,7 @@ process_paths(char **paths, ls_options *ls_opts, int is_directory)
 			}
 
 			children = fts_children(ftsp, 0);
-			process_entries(children, ls_opts);
+			process_entries(children, ls_opts, 1);
 			first_entry = 0;
 			continue;
 		}

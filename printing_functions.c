@@ -51,6 +51,7 @@ sanitize_filename_malloc(const char *input, char **output)
 	*output = sanitized;
 }
 
+/* might be redundant - remove maybe */
 void
 print_entry_short(FTSENT *entry, char *filename, ls_options *ls_opts)
 {
