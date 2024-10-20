@@ -101,7 +101,7 @@ print_children(FTSENT *children, ls_options *ls_opts, dir_info *di)
 	curr_yr = curr_tm_info.tm_year + 1900;
 
 	if ((ls_opts->o_long_format || ls_opts->o_long_numeric_ids) &&
-	    di->total_blocks >= 0) {
+	    di->total_blocks > 0) {
 		/* blocks are in units of 512 bytes, so divide then * by block size
 		 */
 		if (ls_opts->o_human_readable_size) {
