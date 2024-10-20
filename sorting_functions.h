@@ -13,4 +13,8 @@ int reverse_lexicographical_sort(const FTSENT **a, const FTSENT **b);
 
 int time_modified_sort(const FTSENT **a, const FTSENT **b);
 
+int time_changed_sort(const FTSENT **a, const FTSENT **b);
+
+int time_accessed_sort(const FTSENT **a, const FTSENT **b);
+
 #endif

@@ -44,7 +44,7 @@ process_entries(FTSENT *children, ls_options *ls_opts, int print_total)
 	/* Total block size always init to 0; we initialize the others to -1 to
 	 * check whether they were populated in print to avoid unnecessary
 	 * processing */
-	dir_info di = {0, -1, -1, -1, -1, -1, -1, -1, -1};
+	dir_info di = {0, -1, -1, -1, -1, -1, -1, -1, -1, 512};
 
 	int size_len;
 	int links_len;
@@ -65,6 +65,9 @@ process_entries(FTSENT *children, ls_options *ls_opts, int print_total)
 	}
 
 	getbsize(NULL, &blocksizep);
+	if (blocksizep >= 512) {
+		di.blocksizep = blocksizep;
+	}
 
 	/* Find widths of props of children files */
 	for (child = children; child != NULL; child = child->fts_link) {
@@ -183,6 +186,10 @@ process_paths(char **paths, ls_options *ls_opts, int is_directory)
 		sort_fn = &reverse_lexicographical_sort;
 	} else if (ls_opts->o_sort_by_mod_time) {
 		sort_fn = &time_modified_sort;
+	} else if (ls_opts->o_use_status_time) {
+		sort_fn = &time_changed_sort;
+	} else if (ls_opts->o_use_access_time) {
+		sort_fn = &time_accessed_sort;
 	} else {
 		sort_fn = &lexicographical_sort;
 	}

@@ -14,6 +14,7 @@ typedef struct dir_info {
 	/* Short or long format */
 	int max_inode_width;
 	int max_block_size_width;
+	long blocksizep;
 } dir_info;
 
 #endif

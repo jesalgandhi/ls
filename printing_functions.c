@@ -95,23 +95,21 @@ print_children(FTSENT *children, ls_options *ls_opts, dir_info *di)
 	struct group *gr;
 	ssize_t len;
 	char *sanitized_link_target;
-	long blocksizep;
 
 	t = time(NULL);
 	localtime_r(&t, &curr_tm_info);
 	curr_yr = curr_tm_info.tm_year + 1900;
-
-	getbsize(NULL, &blocksizep);
 
 	if ((ls_opts->o_long_format || ls_opts->o_long_numeric_ids) &&
 	    di->total_blocks >= 0) {
 		/* blocks are in units of 512 bytes, so divide then * by block size
 		 */
 		if (ls_opts->o_human_readable_size) {
-			if (humanize_number(
-					file_size_str, sizeof(file_size_str),
-					(di->total_blocks * 512) / blocksizep, NULL, HN_AUTOSCALE,
-					HN_NOSPACE | HN_B | HN_DIVISOR_1000 | HN_DECIMAL) != -1) {
+			if (humanize_number(file_size_str, sizeof(file_size_str),
+			                    (di->total_blocks * 512) / di->blocksizep, NULL,
+			                    HN_AUTOSCALE,
+			                    HN_NOSPACE | HN_B | HN_DIVISOR_1000 |
+			                        HN_DECIMAL) != -1) {
 
 				switch_k_to_K(file_size_str);
 				printf("total %s\n", file_size_str);
@@ -119,7 +117,7 @@ print_children(FTSENT *children, ls_options *ls_opts, dir_info *di)
 				fprintf(stderr, "%s: %s", getprogname(), strerror(errno));
 			}
 		} else {
-			printf("total %ld\n", (di->total_blocks * 512) / blocksizep);
+			printf("total %ld\n", (di->total_blocks * 512) / di->blocksizep);
 		}
 	}
 
@@ -166,7 +164,7 @@ print_children(FTSENT *children, ls_options *ls_opts, dir_info *di)
 		if (ls_opts->o_display_block_usage) {
 			snprintf(blocks_str, sizeof(blocks_str), "%*ld ",
 			         di->max_block_size_width,
-			         (long)(sb->st_blocks * 512) / blocksizep);
+			         (long)(sb->st_blocks * 512) / di->blocksizep);
 		}
 
 		if (ls_opts->o_long_format || ls_opts->o_long_numeric_ids) {
