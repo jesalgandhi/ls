@@ -180,7 +180,9 @@ process_paths(char **paths, ls_options *ls_opts, int is_directory)
 	if (ls_opts->o_no_sorting) {
 		sort_fn = NULL;
 	} else if (ls_opts->o_reverse_sort) {
-		sort_fn = reverse_lexicographical_sort;
+		sort_fn = &reverse_lexicographical_sort;
+	} else if (ls_opts->o_sort_by_mod_time) {
+		sort_fn = &time_modified_sort;
 	} else {
 		sort_fn = &lexicographical_sort;
 	}

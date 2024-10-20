@@ -11,4 +11,6 @@ int lexicographical_sort(const FTSENT **a, const FTSENT **b);
 
 int reverse_lexicographical_sort(const FTSENT **a, const FTSENT **b);
 
+int time_modified_sort(const FTSENT **a, const FTSENT **b);
+
 #endif
