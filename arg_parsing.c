@@ -1,5 +1,9 @@
 #include "arg_parsing.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
 void
 usage()
 {
@@ -14,6 +18,12 @@ parse_commandline_args(int argc, char **argv, ls_options *ls_opts)
 {
 	int option;
 	extern int optind;
+
+
+	/* if output is stdout, force printing of np chars */
+	if (isatty(STDOUT_FILENO)) {
+		ls_opts->o_f_print_non_printable = 1;
+	}
 
 	while ((option = getopt(argc, argv, "AacdFfhiklnqRrSstuw")) != -1) {
 		switch (option) {
@@ -48,16 +58,16 @@ parse_commandline_args(int argc, char **argv, ls_options *ls_opts)
 			ls_opts->o_report_kb = 1;
 			break;
 		case 'l':
-			ls_opts->o_numeric_ids = 0;
+			ls_opts->o_long_numeric_ids = 0;
 			ls_opts->o_long_format = 1;
 			break;
 		case 'n':
 			ls_opts->o_long_format = 0;
-			ls_opts->o_numeric_ids = 1;
+			ls_opts->o_long_numeric_ids = 1;
 			break;
 		case 'q':
 			ls_opts->o_raw_print_non_printable = 0;
-			ls_opts->o_f_non_printable = 1;
+			ls_opts->o_f_print_non_printable = 1;
 			break;
 		case 'R':
 			ls_opts->o_recursive = 1;
@@ -79,7 +89,7 @@ parse_commandline_args(int argc, char **argv, ls_options *ls_opts)
 			ls_opts->o_use_access_time = 1;
 			break;
 		case 'w':
-			ls_opts->o_f_non_printable = 0;
+			ls_opts->o_f_print_non_printable = 0;
 			ls_opts->o_raw_print_non_printable = 1;
 			break;
 		case '?':

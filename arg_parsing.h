@@ -1,10 +1,6 @@
 #ifndef ARG_PARSING_H
 #define ARG_PARSING_H
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-
 #include "ls_options.h"
 
 

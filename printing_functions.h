@@ -47,9 +47,6 @@ void sanitize_filename(const char *input, char *output, size_t size);
 /* Allocates memory in output for a sanitized filename (for fts_pointer) */
 void sanitize_filename_malloc(const char *input, char **output);
 
-/* Prints a single entry in short format */
-void print_entry_short(FTSENT *entry, char *filename, ls_options *ls_opts);
-
 /* Prints all entries of children in non-standard (short/long) format, depending
  * on options */
 void print_children(FTSENT *children, ls_options *ls_opts, dir_info *di);

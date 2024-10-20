@@ -73,7 +73,7 @@ process_entries(FTSENT *children, ls_options *ls_opts, int print_total)
 			continue;
 		}
 
-		/* Only free in print IF !o_raw_print_non_printable */
+		/* Only free in print if both flags off */
 		if (!ls_opts->o_raw_print_non_printable) {
 			sanitize_filename_malloc(child->fts_name, &sanitized_name);
 			child->fts_pointer = sanitized_name;
@@ -101,7 +101,7 @@ process_entries(FTSENT *children, ls_options *ls_opts, int print_total)
 		}
 
 		/* Below options always apply to long format */
-		if (ls_opts->o_long_format) {
+		if (ls_opts->o_long_format || ls_opts->o_long_numeric_ids) {
 			if (print_total) {
 				di.total_blocks += sb->st_blocks;
 			}
@@ -112,13 +112,19 @@ process_entries(FTSENT *children, ls_options *ls_opts, int print_total)
 			}
 
 			pw = getpwuid(sb->st_uid);
-			owner_len = pw ? strlen(pw->pw_name) : 0;
+			gr = getgrgid(sb->st_gid);
+			if (ls_opts->o_long_numeric_ids) {
+				owner_len = snprintf(NULL, 0, "%i", pw->pw_uid);
+				group_len = snprintf(NULL, 0, "%i", gr->gr_gid);
+
+			} else {
+				owner_len = pw ? strlen(pw->pw_name) : 0;
+				group_len = gr ? strlen(gr->gr_name) : 0;
+			}
+
 			if (owner_len > di.max_owner_width) {
 				di.max_owner_width = owner_len;
 			}
-
-			gr = getgrgid(sb->st_gid);
-			group_len = gr ? strlen(gr->gr_name) : 0;
 			if (group_len > di.max_group_width) {
 				di.max_group_width = group_len;
 			}

@@ -66,23 +66,6 @@ sanitize_filename_malloc(const char *input, char **output)
 	*output = sanitized;
 }
 
-/* might be redundant - remove maybe */
-void
-print_entry_short(FTSENT *entry, char *filename, ls_options *ls_opts)
-{
-	char sanitized_name[PATH_MAX];
-	if (!ls_opts->o_raw_print_non_printable) {
-		sanitize_filename(filename, sanitized_name, sizeof(sanitized_name));
-		printf("%s", sanitized_name);
-	} else {
-		printf("%s", filename);
-	}
-
-	/* TODO print more here maybe ... */
-	(void)entry;
-	printf("\n");
-}
-
 void
 print_children(FTSENT *children, ls_options *ls_opts, dir_info *di)
 {
@@ -99,6 +82,8 @@ print_children(FTSENT *children, ls_options *ls_opts, dir_info *di)
 	char inode_str[MAX_INODE_STR_SIZE];
 	char blocks_str[MAX_BLOCKS_STR_SIZE];
 	char file_size_str[FILESIZE_STR_SIZE];
+	char pw_name_buf[20];
+	char gr_name_buf[20];
 
 	time_t t;
 	struct tm curr_tm_info;
@@ -118,7 +103,8 @@ print_children(FTSENT *children, ls_options *ls_opts, dir_info *di)
 
 	getbsize(NULL, &blocksizep);
 
-	if (ls_opts->o_long_format && di->total_blocks >= 0) {
+	if ((ls_opts->o_long_format || ls_opts->o_long_numeric_ids) &&
+	    di->total_blocks >= 0) {
 		/* blocks are in units of 512 bytes, so divide then * by block size
 		 */
 		if (ls_opts->o_human_readable_size) {
@@ -136,6 +122,9 @@ print_children(FTSENT *children, ls_options *ls_opts, dir_info *di)
 			printf("total %ld\n", (di->total_blocks * 512) / blocksizep);
 		}
 	}
+
+	pw_name_buf[0] = '\0';
+	gr_name_buf[0] = '\0';
 
 	for (child = children; child != NULL; child = child->fts_link) {
 		if ((child->fts_name[0] == '.') &&
@@ -180,9 +169,14 @@ print_children(FTSENT *children, ls_options *ls_opts, dir_info *di)
 			         (long)(sb->st_blocks * 512) / blocksizep);
 		}
 
-		if (ls_opts->o_long_format) {
+		if (ls_opts->o_long_format || ls_opts->o_long_numeric_ids) {
 			pw = getpwuid(sb->st_uid);
 			gr = getgrgid(sb->st_gid);
+
+			if (ls_opts->o_long_numeric_ids) {
+				sprintf(pw_name_buf, "%ld", (long)pw->pw_uid);
+				sprintf(gr_name_buf, "%ld", (long)gr->gr_gid);
+			}
 
 			if (ls_opts->o_human_readable_size) {
 				if (humanize_number(file_size_str, sizeof(file_size_str),
@@ -192,9 +186,11 @@ print_children(FTSENT *children, ls_options *ls_opts, dir_info *di)
 					printf("%s%s%s %*ld %-*s  %-*s  %*s %s %s", inode_str,
 					       blocks_str, sym_str, di->max_links_width,
 					       (long)sb->st_nlink, di->max_owner_width,
-					       pw ? pw->pw_name : "", di->max_group_width,
-					       gr ? gr->gr_name : "", di->max_size_width,
-					       file_size_str, date_str, filename);
+					       pw_name_buf[0] != '\0' ? pw_name_buf : pw->pw_name,
+					       di->max_group_width,
+					       gr_name_buf[0] != '\0' ? gr_name_buf : gr->gr_name,
+					       di->max_size_width, file_size_str, date_str,
+					       filename);
 				} else {
 					fprintf(stderr, "%s: %s", getprogname(), strerror(errno));
 				}
@@ -202,10 +198,15 @@ print_children(FTSENT *children, ls_options *ls_opts, dir_info *di)
 				printf("%s%s%s %*ld %-*s  %-*s  %*ld %s %s", inode_str,
 				       blocks_str, sym_str, di->max_links_width,
 				       (long)sb->st_nlink, di->max_owner_width,
-				       pw ? pw->pw_name : "", di->max_group_width,
-				       gr ? gr->gr_name : "", di->max_size_width,
-				       (long)sb->st_size, date_str, filename);
+				       pw_name_buf[0] != '\0' ? pw_name_buf : pw->pw_name,
+				       di->max_group_width,
+				       gr_name_buf[0] != '\0' ? gr_name_buf : gr->gr_name,
+				       di->max_size_width, (long)sb->st_size, date_str,
+				       filename);
 			}
+
+			pw_name_buf[0] = '\0';
+			gr_name_buf[0] = '\0';
 
 
 			if (ls_opts->o_type_indicate &&
