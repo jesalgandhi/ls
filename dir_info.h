@@ -4,6 +4,7 @@
 typedef struct dir_info {
 	/* Exclusive to long format */
 	long total_blocks;
+	long total_size;
 	int max_links_width;
 	int max_owner_width;
 	int max_group_width;

@@ -100,14 +100,14 @@ print_children(FTSENT *children, ls_options *ls_opts, dir_info *di)
 	localtime_r(&t, &curr_tm_info);
 	curr_yr = curr_tm_info.tm_year + 1900;
 
-	if ((ls_opts->o_long_format || ls_opts->o_long_numeric_ids) &&
-	    di->total_blocks > 0) {
+	if ((ls_opts->o_long_format || ls_opts->o_long_numeric_ids ||
+	     (ls_opts->o_display_block_usage && isatty(STDOUT_FILENO))) &&
+	    (di->total_blocks > 0 || di->total_size > 0)) {
 		/* blocks are in units of 512 bytes, so divide then * by block size
 		 */
 		if (ls_opts->o_human_readable_size) {
 			if (humanize_number(file_size_str, sizeof(file_size_str),
-			                    (di->total_blocks * 512) / di->blocksizep, NULL,
-			                    HN_AUTOSCALE,
+			                    di->total_size, NULL, HN_AUTOSCALE,
 			                    HN_NOSPACE | HN_B | HN_DIVISOR_1000 |
 			                        HN_DECIMAL) != -1) {
 

@@ -44,7 +44,7 @@ process_entries(FTSENT *children, ls_options *ls_opts, int print_total)
 	/* Total block size always init to 0; we initialize the others to -1 to
 	 * check whether they were populated in print to avoid unnecessary
 	 * processing */
-	dir_info di = {0, -1, -1, -1, -1, -1, -1, -1, -1, 512};
+	dir_info di = {0, 0, -1, -1, -1, -1, -1, -1, -1, -1, 512};
 
 	int size_len;
 	int links_len;
@@ -60,6 +60,10 @@ process_entries(FTSENT *children, ls_options *ls_opts, int print_total)
 	curr_tm_info = *tm_ptr;
 	curr_yr = curr_tm_info.tm_year + 1900;
 
+	if (ls_opts->o_display_block_usage && isatty(STDOUT_FILENO)) {
+		print_total = 1;
+	}
+
 	if (!print_total) {
 		di.total_blocks = -1;
 	}
@@ -67,6 +71,10 @@ process_entries(FTSENT *children, ls_options *ls_opts, int print_total)
 	getbsize(NULL, &blocksizep);
 	if (blocksizep >= 512) {
 		di.blocksizep = blocksizep;
+	}
+
+	if (ls_opts->o_report_kb) {
+		di.blocksizep = 1024;
 	}
 
 	/* Find widths of props of children files */
@@ -88,7 +96,8 @@ process_entries(FTSENT *children, ls_options *ls_opts, int print_total)
 
 		/* Below two options apply to either short/long format */
 		if (ls_opts->o_display_block_usage) {
-			/* Check len of str representation of type as long (repeated below)
+			/* Check len of str representation of type as long (repeated
+			 * below)
 			 */
 			block_size_len = snprintf(NULL, 0, "%ld",
 			                          (long)(sb->st_blocks * 512) / blocksizep);
@@ -104,9 +113,14 @@ process_entries(FTSENT *children, ls_options *ls_opts, int print_total)
 		}
 
 		/* Below options always apply to long format */
-		if (ls_opts->o_long_format || ls_opts->o_long_numeric_ids) {
+		if (ls_opts->o_long_format || ls_opts->o_long_numeric_ids ||
+		    (ls_opts->o_display_block_usage && isatty(STDOUT_FILENO))) {
 			if (print_total) {
-				di.total_blocks += sb->st_blocks;
+				if (ls_opts->o_human_readable_size) {
+					di.total_size += sb->st_size;
+				} else {
+					di.total_blocks += sb->st_blocks;
+				}
 			}
 
 			links_len = snprintf(NULL, 0, "%ld", (long)sb->st_nlink);
