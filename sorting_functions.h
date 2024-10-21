@@ -7,6 +7,8 @@
 
 #include <fts.h>
 
+#include "ls_options.h"
+
 int lexicographical_sort(const FTSENT **a, const FTSENT **b);
 
 int reverse_lexicographical_sort(const FTSENT **a, const FTSENT **b);

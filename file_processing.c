@@ -85,7 +85,8 @@ process_entries(FTSENT *children, ls_options *ls_opts, int print_total)
 		}
 
 		/* Only free in print if both flags off */
-		if (!ls_opts->o_raw_print_non_printable) {
+		if (!ls_opts->o_raw_print_non_printable ||
+		    !ls_opts->o_f_print_non_printable) {
 			sanitize_filename_malloc(child->fts_name, &sanitized_name);
 			child->fts_pointer = sanitized_name;
 		} else {
@@ -194,18 +195,24 @@ process_paths(char **paths, ls_options *ls_opts, int is_directory)
 	int first_entry = 1;
 	int (*sort_fn)(const FTSENT **, const FTSENT **);
 
+	sort_fn = &lexicographical_sort;
+
 	if (ls_opts->o_no_sorting) {
 		sort_fn = NULL;
-	} else if (ls_opts->o_reverse_sort) {
+	}
+	if (ls_opts->o_reverse_sort) {
 		sort_fn = &reverse_lexicographical_sort;
-	} else if (ls_opts->o_sort_by_mod_time) {
-		sort_fn = &time_modified_sort;
-	} else if (ls_opts->o_use_status_time) {
-		sort_fn = &time_changed_sort;
-	} else if (ls_opts->o_use_access_time) {
-		sort_fn = &time_accessed_sort;
-	} else {
-		sort_fn = &lexicographical_sort;
+	}
+	if (ls_opts->o_sort_by_mod_time) {
+		if (ls_opts->o_sort_by_mod_time) {
+			sort_fn = &time_modified_sort;
+		}
+		if (ls_opts->o_use_status_time) {
+			sort_fn = &time_changed_sort;
+		}
+		if (ls_opts->o_use_access_time) {
+			sort_fn = &time_accessed_sort;
+		}
 	}
 
 	fts_opts = FTS_PHYSICAL | FTS_NOCHDIR | FTS_WHITEOUT;

@@ -228,7 +228,8 @@ print_children(FTSENT *children, ls_options *ls_opts, dir_info *di)
 				if (len != -1) {
 					link_target[len] = '\0';
 					/* Sanitize link target if required */
-					if (!ls_opts->o_raw_print_non_printable) {
+					if (!ls_opts->o_raw_print_non_printable ||
+					    !ls_opts->o_f_print_non_printable) {
 						sanitize_filename_malloc(link_target,
 						                         &sanitized_link_target);
 					} else {
@@ -237,7 +238,8 @@ print_children(FTSENT *children, ls_options *ls_opts, dir_info *di)
 					printf(" -> %s", sanitized_link_target);
 
 					/* Free if it was sanitized */
-					if (!ls_opts->o_raw_print_non_printable) {
+					if (!ls_opts->o_raw_print_non_printable ||
+					    !ls_opts->o_f_print_non_printable) {
 						free(sanitized_link_target);
 					}
 				}
@@ -257,7 +259,8 @@ print_children(FTSENT *children, ls_options *ls_opts, dir_info *di)
 		}
 
 		/* Free the sanitized filename only if it was malloc'ed */
-		if (!ls_opts->o_raw_print_non_printable) {
+		if (!ls_opts->o_raw_print_non_printable ||
+		    !ls_opts->o_f_print_non_printable) {
 			free(filename);
 		}
 	}

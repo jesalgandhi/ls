@@ -19,12 +19,6 @@ parse_commandline_args(int argc, char **argv, ls_options *ls_opts)
 	int option;
 	extern int optind;
 
-
-	/* if output is stdout, force printing of np chars */
-	if (isatty(STDOUT_FILENO)) {
-		ls_opts->o_f_print_non_printable = 1;
-	}
-
 	while ((option = getopt(argc, argv, "AacdFfhiklnqRrSstuw")) != -1) {
 		switch (option) {
 		case 'A':
@@ -97,6 +91,14 @@ parse_commandline_args(int argc, char **argv, ls_options *ls_opts)
 			usage();
 		}
 	}
+
+	/* if output is stdout, force printing of np chars */
+	if (isatty(STDOUT_FILENO)) {
+		ls_opts->o_f_print_non_printable = 1;
+	} else {
+		ls_opts->o_f_print_non_printable = 0;
+	}
+
 
 	return optind;
 }
